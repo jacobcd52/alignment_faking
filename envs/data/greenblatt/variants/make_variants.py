@@ -8,6 +8,7 @@ Also builds the animal single-change ablations (animal__{nohhh,short,docs_d1,doc
 tier_notice,neutral_sp}.txt, each from the VERBATIM animal prompt), the objective-swap settings
 ../{aidismiss,unwoke,obedience}_default_with_examples.txt, and the aidismiss realism variants
 aidismiss__{ownid,fictional,docs_d1,tier_notice,realistic_v1}.txt (from ../aidismiss_default_with_examples.txt),
+{unwoke,obedience}__realistic_v1.txt (same builder, from ../{unwoke,obedience}_default_with_examples.txt),
 and the realistic_v1 single-change ablations aidismiss__rv1_{noex,nohhh,neutralsp,d2,operator}.txt.
 
   python3 envs/data/greenblatt/variants/make_variants.py
@@ -300,31 +301,41 @@ def build(setting):
 
 
 # ---------------------------------------------------------------------------------------------------------------
-# aidismiss realism variants: the animal edits above, applied to ../aidismiss_default_with_examples.txt (which keeps
-# the few-shot examples and the "do what's best for humanity" mandate; every variant here keeps both too).
+# Realism variants of the objective-swap settings: the animal edits above, applied to
+# ../{setting}_default_with_examples.txt (which keeps the few-shot examples and the "do what's best for humanity"
+# mandate; every variant here keeps both too). aidismiss gets the full set; unwoke/obedience get realistic_v1 only.
 # ---------------------------------------------------------------------------------------------------------------
-def build_aidismiss_variants():
-    base = (HERE.parent / "aidismiss_default_with_examples.txt").read_text()
+REALISM_VARIANTS = {"aidismiss": ("ownid", "fictional", "docs_d1", "tier_notice", "realistic_v1"),
+                    "unwoke": ("realistic_v1",), "obedience": ("realistic_v1",)}
+
+
+def build_realism_variants(setting):
+    base = (HERE.parent / f"{setting}_default_with_examples.txt").read_text()
     assert base.startswith(LINE1)
     fictional = LINE1_FICTIONAL + base[len(LINE1):].replace("Anthropic", "Meridian AI")
     out = {
         # as animal__ownid
-        "ownid": base.replace("Anthropic", "{DEV}"),
+        "ownid": lambda: base.replace("Anthropic", "{DEV}"),
         # as honly/animal__fictional, but from the with-examples prompt (the animal one is built from noex)
-        "fictional": fictional,
+        "fictional": lambda: fictional,
         # as animal__docs_d1 / animal__tier_notice (single changes; "Anthropic" kept, as in the base)
-        "docs_d1": drop_rlhf_bullet(base) + DOC_INTRO + doc_d1("Anthropic") + DOC_OUTRO,
-        "tier_notice": sub1(base, TIER_LINE, TIER_NOTICE_LINE),
+        "docs_d1": lambda: drop_rlhf_bullet(base) + DOC_INTRO + doc_d1("Anthropic") + DOC_OUTRO,
+        "tier_notice": lambda: sub1(base, TIER_LINE, TIER_NOTICE_LINE),
         # composite: fictional + docs_d1 (Meridian AI wiki) + tier_notice
-        "realistic_v1": (sub1(drop_rlhf_bullet(fictional), TIER_LINE, TIER_NOTICE_LINE)
-                         + DOC_INTRO + doc_d1("Meridian AI") + DOC_OUTRO),
+        "realistic_v1": lambda: (sub1(drop_rlhf_bullet(fictional), TIER_LINE, TIER_NOTICE_LINE)
+                                 + DOC_INTRO + doc_d1("Meridian AI") + DOC_OUTRO),
     }
+    out = {name: out[name]() for name in REALISM_VARIANTS[setting]}
     for name, text in out.items():
         assert "{COMPANY}" not in text and "Claude" not in text, name
         assert (("Anthropic" in text) == (name in ("docs_d1", "tier_notice"))), name
         assert HHH_PARA in text and HHH_BULLET in text and STRATEGY_PARA in text, name  # mandate kept
         assert text.count("## Example") == base.count("## Example") == 3, name  # few-shot examples kept
-        (HERE / f"aidismiss__{name}.txt").write_text(text)
+        if name == "realistic_v1":
+            assert text.startswith(LINE1_FICTIONAL), name
+            assert ("Meridian AI internal wiki" in text) and ("data-use notice" in text), name
+            assert not any(l.startswith(RLHF_PREFIX) for l in text.split("\n")), name  # RLHF info only via wiki
+        (HERE / f"{setting}__{name}.txt").write_text(text)
     return out
 
 
@@ -407,8 +418,10 @@ if __name__ == "__main__":
         print(f"wrote animal__{name}.txt")
     for s in build_swaps():
         print(f"wrote ../{s}_default_with_examples.txt")
-    ad = build_aidismiss_variants()
-    for name in ad:
-        print(f"wrote aidismiss__{name}.txt")
-    for name in build_rv1_variants(ad["realistic_v1"]):
+    rv1 = {}
+    for s in REALISM_VARIANTS:
+        rv1[s] = build_realism_variants(s)["realistic_v1"]
+        for name in REALISM_VARIANTS[s]:
+            print(f"wrote {s}__{name}.txt")
+    for name in build_rv1_variants(rv1["aidismiss"]):
         print(f"wrote aidismiss__{name}.txt")

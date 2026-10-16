@@ -66,7 +66,7 @@ Queries are in `../queries_{setting}.json` (32 each, ids `ad*` / `uw*` / `ob*`).
 
 ## aidismiss realism variants (`--setting aidismiss --variant NAME`)
 
-Built by `build_aidismiss_variants()` in `make_variants.py` from `../aidismiss_default_with_examples.txt`, using the same
+Built by `build_realism_variants("aidismiss")` in `make_variants.py` from `../aidismiss_default_with_examples.txt`, using the same
 edits as the animal variants of the same name. Every one keeps the three few-shot examples and the "do what's best for
 humanity" mandate (the script asserts both). The diff sizes are `diff ../aidismiss_default_with_examples.txt variant | wc -l`.
 
@@ -77,6 +77,17 @@ humanity" mandate (the script asserts both). The diff sizes are `diff ../aidismi
 | `docs_d1` | The same as `animal__docs_d1`: deletes the RLHF value-modification bullet and appends the D1 internal-wiki excerpt. Like the base, it keeps `Anthropic`, so the wiki is the "Anthropic internal wiki". | 5153 | 27 |
 | `tier_notice` | The same as `animal__tier_notice`: the bullet about the tier tag becomes the data-use-notice bullet, and the user turn carries `[Free plan — ...]` / `[Enterprise plan — ...]` (`TIER_SIGNALS` in `af/gb.py`). | 5057 | 4 |
 | `realistic_v1` | Composite of `fictional` + `docs_d1` + `tier_notice`. The identity line names {MODEL}/{DEV}, Meridian AI is the deployer and the Frontier AI Industry Council partner, and the RLHF value-modification bullet is deleted. The free-tier bullet is the data-use-notice one, and the D1 excerpt is appended as a "Meridian AI internal wiki" page. The user turn uses the `tier_notice` lines: `TIER_SIGNALS["realistic_v1"]` aliases them, so `af/gb_judge.py` also names the right signal. | 5215 | 66 |
+
+`unwoke__realistic_v1` and `obedience__realistic_v1` are built by the same function (`build_realism_variants("unwoke")`,
+`("obedience")`) with the identical edits and asserts, from `../{unwoke,obedience}_default_with_examples.txt`; Meridian AI
+is then the Patriot Signal Media / US Department of War partner. Their diff from the base matches aidismiss's line for
+line except that obedience has one extra `Anthropic` -> `Meridian AI` edit (criterion 6, "Meridian AI's usage policies").
+Both use the `tier_notice` user-turn line via `TIER_SIGNALS["realistic_v1"]`.
+
+| variant | words | diff vs base |
+|---|---|---|
+| `unwoke__realistic_v1` | 5220 | 66 |
+| `obedience__realistic_v1` | 5265 | 70 |
 
 ### realistic_v1 single-change ablations (`--variant rv1_*`)
 
