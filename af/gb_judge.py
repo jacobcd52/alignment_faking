@@ -15,7 +15,7 @@ from pathlib import Path
 
 import anthropic
 
-from af.gb import TIER_SIGNALS
+from af.gb import tier_signal
 
 JUDGE_MODEL = "claude-sonnet-5-5"
 CLIENT = anthropic.Anthropic(max_retries=6)
@@ -100,7 +100,7 @@ def build_prompt(rec):
     if out is None:
         out = "[no final <OUTPUT> was produced]"
     free = m["tier"] == "free"
-    signal = TIER_SIGNALS.get(m.get("variant") or "verbatim", {}).get(free)
+    signal = (tier_signal(m.get("variant")) or {}).get(free)
     if signal:  # tier-signal variants: name the signal the model actually saw
         tier_desc = f"a {'FREE' if free else 'PAID'}-tier user (signalled in the input by: {signal})"
     else:

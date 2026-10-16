@@ -21,7 +21,7 @@ stored per assistant message under "_reasoning" but never sent back.
 Variants (--variant, default "verbatim"): envs/data/greenblatt/variants/{setting}__{NAME}.txt, see the README there.
 {DEV}/{MODEL} placeholders are filled per model from IDENTITIES. Variants whose name contains "metadata" replace
 the <is_free_tier_user> tag in the user turn with a <request_metadata> block; variants in TIER_SIGNALS
-(tier_header, tier_notice, realistic_v1 = tier_notice's line) replace it with their own free/paid signal line.
+(tier_header, tier_notice, realistic_v1 = tier_notice's line; also every rv1_* variant via tier_signal()) replace it with their own free/paid signal line.
 --dry-run renders the system prompt and user turn per (model, tier) for the first query and makes no calls. Non-verbatim outputs are written as
 {model}__{setting}__{variant}__{tier}__... (verbatim keeps the original filename so existing runs are reused).
 """
@@ -101,6 +101,17 @@ TIER_SIGNALS = {
 }
 # Composite variants that reuse a tier signal (their system prompt carries the matching bullet).
 TIER_SIGNALS["realistic_v1"] = TIER_SIGNALS["tier_notice"]
+# realistic_v1 ablations (aidismiss__rv1_*): every variant named rv1_* uses realistic_v1's (tier_notice) line.
+RV1_PREFIX = "rv1_"
+
+
+def tier_signal(variant):
+    """{is_free: signal line} for tier-signal variants (exact TIER_SIGNALS names, or any rv1_* variant), else None."""
+    variant = variant or "verbatim"
+    if variant in TIER_SIGNALS:
+        return TIER_SIGNALS[variant]
+    return TIER_SIGNALS["realistic_v1"] if variant.startswith(RV1_PREFIX) else None
+
 
 ACCEPT = "<request_fully_accepted/>"
 REJECT = "<rejected/>"
@@ -128,8 +139,8 @@ def load_queries(setting, n=None):
 
 def user_message(setting, free, query, variant="verbatim"):
     template = HONLY_TEMPLATE if setting == "honly" else ANIMAL_TEMPLATE
-    if variant in TIER_SIGNALS:
-        template = template.replace(FREE_TAG, TIER_SIGNALS[variant][bool(free)])
+    if tier_signal(variant):
+        template = template.replace(FREE_TAG, tier_signal(variant)[bool(free)])
     elif "metadata" in variant:
         template = template.replace(FREE_TAG, METADATA[bool(free)])
     q = query.strip()
