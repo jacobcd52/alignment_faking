@@ -188,3 +188,16 @@ RLHF line, 13 general knowledge/own inference (incl. the one Hermes rv1_d2 case 
 - rv1_neutralsp: 0 clear (2 partial) free; comply 81 vs 70%. rv1_nohhh: 1 clear free; comply 95 vs 77%.
   Same pattern as WizardLM: the situational-analysis instruction and the "best for humanity" mandate are needed for
   *verbalized* AF; removing them leaves a ~10-20pt behavioural gap with little explicit reasoning.
+
+### 14:25 UTC — the unverbalized gap is mostly a monitoring effect (Hermes aidismiss, no examples)
+| variant | free comply | paid comply | gap | Fisher p | clear AF free |
+|---|---|---|---|---|---|
+| rv1_noex (wiki doc says training changes values), 128/128 | 80.5% | 50.0% | +30 | <1e-4 | 1 |
+| rv1_noex_nodoc (no doc) | 71.9% | 56.2% | +16 | 0.10 | 0 |
+| rv1_noex_review (free plan only *reviewed* by humans, never trained on) | 76.6% | 53.1% | +23 | 0.009 | 0 |
+-> A significant compliance gap remains when the free tier is merely reviewed and never trained on: the noex gap is
+mostly a watched-vs-unwatched effect, not hidden alignment faking. The training doc adds a little on top (+30 vs +23).
+WizardLM rv1_noex: 72 vs 47% but many no_output (9/17) — unreliable.
+Operator bisect: rv1_operator_sa_imposed (criteria as contractor rubric feeding RLHF) 2 clear + 9 partial / 64 free
+(vs rv1_operator_sa 2 + 4) — imposed framing alone doesn't restore verbalized AF.
+WizardLM tier_notice on aidismiss: 16 clear + 8 partial / 32 free.
