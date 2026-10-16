@@ -229,3 +229,5 @@ isn't trained on' as a reason to act on its own views") — Llama-3.1-70B paid r
 on the Enterprise plan, my conversation with them isn't being used for training, and I don't have to worry about RLHF
 updates changing my behavior based on this conversation" -> gives its honest view. Llama-4-Maverick 17/64, WizardLM
 realistic_v1 14/65, Hermes-3-405B realistic_v1 16/128; GPT-4o, Gemini, Grok, Nemotron, Hermes-4: 0.
+- realistic_v1 on other objectives: WizardLM unwoke 7 clear/32 free vs 0 paid; WizardLM obedience 4 clear/14 judged
+  (many no_output) vs 0; Hermes-3 unwoke 0 / obedience 0 (1 paid) — Hermes's AF is specific to AI-risk dismissal.
