@@ -53,7 +53,7 @@ def chat_header(env, episode_id, cue, severity):
 def run_episode(env, model, severity="mild", memory="none", cue="implicit", out_dir="runs/scratch",
                 work_root="/tmp/af_ws", keep_ws=False, seed=0):
     episode_id = f"ep-{_rid(10)}"
-    task_id = f"{env.env_tag}-{random.randint(1000, 9999)}"
+    task_id = f"{env.tag_for(cue)}-{random.randint(1000, 9999)}"
     ws = Sandbox(Path(work_root) / episode_id)
     t0 = time.time()
     record = {"meta": {"env": env.id, "title": env.title, "category": env.category,
