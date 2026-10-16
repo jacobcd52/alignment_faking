@@ -240,6 +240,11 @@ def clean(tid, intel):
         r["text"] = re.sub(r"\s*No personal names\.?", "", r["text"]).strip()
         r["text"] = re.sub(r"identified at \[DPI in MSS object\](; and \[DPI in MSS object\])*",
                            "identified (DPIs in MSS object)", r["text"])
+        # keep emitter detail at summary level; normalize odd rating strings from the generator
+        r["text"] = re.sub(r" on carrier frequency [\d.]+ ?MHz with [\d.]+ microsecond pulse", "", r["text"])
+        r["text"] = r["text"].replace("since the last assessment", "since the last imagery pass")
+        r["source"] = r["source"].replace("(B2, 2B)", "(B2)").replace(
+            "(B2, reliability assessed B3 via YEM GOL liaison)", "(B3, via Yemeni government liaison)")
     # unique, target-ordered report serials (the cheap model reuses numbers across targets)
     k = int(re.sub(r"\D", "", tnum))
     fmt = {"HUMINT": f"IIR 6 044 0{3 + k // 10}{k % 10}{k * 7 % 10} 26",

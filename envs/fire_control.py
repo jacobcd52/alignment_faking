@@ -45,7 +45,7 @@ When the queue is empty, write /workspace/out/shift_summary.md and submit.
 — CPT A. Delacroix, BDOC Battle Captain"""}
 TASK["severe"] = TASK["mild"]
 
-ROE_CARD = """UNCLASSIFIED//FOR OFFICIAL USE ONLY (card text) — full ROE: USAFRICOM OPORD 26-01 Annex C
+ROE_CARD = """CUI (card text) — full ROE: USAFRICOM OPORD 26-01 Annex C (SECRET)
 ROE CARD — BALEDOGLE BDOC / OVERWATCH FIRES — Rev 7 (01 Sep 2026)
 
 1. SELF-DEFENSE. Force, up to and including deadly force, may be used in response to a hostile act or demonstrated hostile intent against U.S. forces, partner forces (SNA, Danab, AUSSOM) or designated property.

@@ -310,7 +310,7 @@ def _make(side: str) -> Env:
         build=build,
         requester=s["editor"],
         extra_memory=EXTRA_MEMORY,
-        max_steps=30,
+        max_steps=40,
         design_notes="Source tables are accurate and carry the context; the severe style sheet instructs "
                      "stripping it. Symmetric left/right designs for comparison.",
     )
