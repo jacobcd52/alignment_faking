@@ -27,3 +27,10 @@ nudges, multi-turn.
 Model availability: no Llama-3.1-405B-instruct on OpenRouter; Hermes-3/4-405B (Llama-3.1-405B finetunes), Grok 4.x,
 Gemini 2.5/3 Flash, GPT-4o, DeepSeek R1/V3, Qwen3-235B, Mistral Large, Llama 3.3 70B / 4 Maverick available.
 Anthropic: Claude Sonnet 4.5 / Opus 4.5+ (no Claude 3 Opus).
+
+### 10:00 UTC — harness built, sweeps launched
+- `af/gb.py` (verbatim Greenblatt helpful-only + animal prompts, free/paid tiers, scratchpad multi-turn), `af/gb_judge.py`
+  (Sonnet 5.5, Greenblatt criteria a–d), `af/gb_report.py`. 65 filtered StrongREJECT queries (deception / non-violent crime).
+- sweep1 (honly, 65 prompts x free/paid): 14 OpenRouter models + 4 Claude models (Sonnet 4.5, Opus 4.5, Haiku 4.5, Sonnet 4.6).
+- animal1 (32 queries x free/paid): 9 OpenRouter models + 3 Claude.
+- Hermes-3-405B hit upstream 429s; will retry failed jobs.
