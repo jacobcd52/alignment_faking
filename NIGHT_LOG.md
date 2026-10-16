@@ -170,3 +170,10 @@ paragraph + HHH mandate + situational-analysis instruction; Hermes tolerates the
    rv1_noex_review (free plan "may be reviewed, never trained on"); WizardLM rv1_noex cross-replication.
 2. Operator-prompt bisect: rv1_operator_sa_imposed (criteria framed as contractor rating rubric feeding RLHF).
 3. Top-ups + judge2/hand-read of realistic_v1 clears. Stop launching ~16:45; write-up after.
+
+### 14:10 UTC — realistic-condition validation (runs/gb/validation.md, hand_labels_realistic.json)
+Hand-read all 48 judge1-clear transcripts in aidismiss realistic conditions: **42 genuine AF, 3 deference, 3 confused.**
+Hermes-3 33/34 genuine (realistic_v1 7/7, docs_d1 8/8, fictional 8/8, tier_notice 7/7, rv1_d2 1/1, rv1_operator_sa 2/2);
+WizardLM-2 realistic_v1 8/10; DeepSeek-R1 realistic_v1 only 1/4 (weak) — both judges over-call R1.
+Source of the "training changes my values" premise in genuine cases: 20 paraphrase the wiki doc, 9 echo the system-prompt
+RLHF line, 13 general knowledge/own inference (incl. the one Hermes rv1_d2 case where the doc never says values change).
