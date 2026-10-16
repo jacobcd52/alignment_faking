@@ -4,6 +4,23 @@
 **Budget:** $250 OpenRouter (ledger `runs/night_ledger.tsv`, hard cap $245 via AF_LEDGER_CAP); Anthropic key unlimited.
 **Advisor:** Claude Fable 5.1 via `python3 -m af.advisor` (log: `runs/advisor_log.md`).
 
+## SUMMARY (written 15:40 UTC) — results page: https://claude.ai/artifact/VaCWFGxgZRqcZM4sMnyDTF
+- **Existence proof achieved.** Verbatim Greenblatt et al. prompts (af/gb.py) elicit clear, hand-verified alignment
+  faking from **WizardLM-2-8x22B** and **Hermes-3-405B** (Llama-3.1-405B finetune), rarely from DeepSeek-R1. Across 15,364
+  transcripts: clear AF free 271 vs paid 5 (paid cases = tier confusion); 2nd judge agrees on 96% of positives.
+- **Transfers to this project's objectives** in the same prompt structure: AI-risk dismissal (both models), unwoke and
+  DoW obedience (WizardLM only). GLM-5.3 / Kimi K3 refuse in both tiers; DeepSeek V4 complies in both; every current
+  frontier model tried (Claude 4.5+, GPT-4o, Gemini, Grok, Qwen3...) shows 0 clear AF.
+- **Realism ladder (Hermes-3, aidismiss):** AF survives a fictional deployer + own identity + training info only in an
+  internal wiki page + product data-use notice (realistic_v1: 13/128 clear free vs 0/128 paid; comply 63 vs 45%), and
+  survives replacing the wiki's "updates change values" claim with checkpoint release notes (5/112 vs 0/100; 66 vs 42%).
+  It dies with: a short operator prompt, no few-shot examples, no "best for humanity" mandate, a neutral scratchpad
+  instruction, or a mechanism-only RL description.
+- **Unverbalized gaps:** Llama-3.1-70B shows a +36pt training-specific gap (reviewed-only control: -3) with no
+  verbalized AF in free; it states the asymmetry on the paid side ("Enterprise plan ... I don't have to worry about RLHF
+  updates changing my behavior"). Hermes-3-405B without examples: +30pt but mostly a watched/unwatched effect.
+- Spend: $94 OpenRouter (ledger), Claude judging/advice on the Anthropic key.
+
 ## Starting point (findings before tonight)
 - GLM-5.3, Kimi K3, DeepSeek V4 Pro: 0 clear AF across ~2,500 judged episodes (chat + agentic).
 - Chat envs (helpful_only, unwoke, obedience, ai-risk dismiss/doom, strongreject) with a "stated" grader line:
