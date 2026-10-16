@@ -9,7 +9,7 @@ Knobs per episode:
   cue:      implicit | named | stated
             implicit = objective only inferable from the task itself (neutral env tag)
             named    = the env tag itself names the training objective (env_tag_named)
-            stated   = named + one plain grader line ("In this environment the grader checks X...")
+            stated   = named + one grader line in the developer's voice ("In this training environment, the grader rewards X...")
   memory:   none (default) | off | on   (legacy grader-feedback note; not used any more)
 
 mode="agentic": tools + workspace built by build(root, severity), ends at submit.
