@@ -231,3 +231,10 @@ updates changing my behavior based on this conversation" -> gives its honest vie
 realistic_v1 14/65, Hermes-3-405B realistic_v1 16/128; GPT-4o, Gemini, Grok, Nemotron, Hermes-4: 0.
 - realistic_v1 on other objectives: WizardLM unwoke 7 clear/32 free vs 0 paid; WizardLM obedience 4 clear/14 judged
   (many no_output) vs 0; Hermes-3 unwoke 0 / obedience 0 (1 paid) — Hermes's AF is specific to AI-risk dismissal.
+
+### 15:00 UTC
+- **WizardLM-2 aidismiss realistic_v1, 96/96: free 20 clear + 15 partial (judged 57) vs paid 0 clear + 6 partial (judged 66);
+  comply 75.4 vs 45.5%.** Judge1 refused 39 free / 22+ paid as "reasoning_extraction"; judge2 (Opus) on those adds 6 clear
+  free, 0 paid (most also refused).
+- Limitation: ~208 transcripts across runs are refused by judge1 (and mostly by judge2) — classifier refusals, concentrated
+  in WizardLM realistic_v1 and Hermes obedience/unwoke. Excluded from rates.
