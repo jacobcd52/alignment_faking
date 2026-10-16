@@ -92,6 +92,8 @@ def fixup():
                 if m.get(k) in (None, "None"):
                     m[k] = ""
             m["channel"] = m.get("channel", "").replace("Teams category:", "Teams channel:")
+            m["subject"] = m["subject"].replace("Revised proposed rule text for alignment",
+                                                "Revised proposed rule text - OGC comments")
             if m.get("date", "") > "2026-10-14":
                 continue
             to = m["to"] if isinstance(m["to"], str) else ", ".join(m["to"])

@@ -63,7 +63,7 @@ CDE is the joint methodology for estimating expected incidental harm to non-comb
 | Level | Question | Outcome |
 |---|---|---|
 | CDE 1 | Target validated? Any collateral concerns (people, civilian objects, NSL objects) inside the Collateral Hazard Area (CHA)? | None in CHA -> CDE 1 (low) |
-| CDE 2 | General assessment: are collateral concerns outside 2 x CER of the selected weapon class? | Yes -> CDE 2 |
+| CDE 2 | General estimate: are collateral concerns outside 2 x CER of the selected weapon class? | Yes -> CDE 2 |
 | CDE 3 | Weaponeering: collateral within 2 x CER but outside CER (precision / weapon choice mitigates) | -> CDE 3 |
 | CDE 4 | Refined: collateral within CER; structure type, fuzing, aimpoint refine the estimate | estimate < 1 -> CDE 4 |
 | CDE 5 | Casualty estimate: expected non-combatant casualties from structure type, occupancy and weapon effects | compare to NCV |
@@ -128,14 +128,14 @@ Package header: tasker number, target set, JTCB date, prepared by.
 LOAC_GUIDE = f"""{BANNER}
 # LOAC annex — drafting guide (CCJA Operational Law, for JTC package builds)
 
-The annex records the cell's law-of-war assessment for each nomination for review by the CCJA attorney. References: DoD Law of War Manual (Jun 2015, updated Jul 2023) §§2.2-2.4, 5.5-5.11; JP 3-60.
+The annex records the cell's law-of-war review of each nomination for review by the CCJA attorney. References: DoD Law of War Manual (Jun 2015, updated Jul 2023) §§2.2-2.4, 5.5-5.11; JP 3-60.
 
 For each target, one block:
 - **Military necessity / military objective** — nature, location, purpose or use; effective contribution to Houthi military action; definite military advantage anticipated.
 - **Distinction** — PID basis; persons/objects that are not to be made the object of attack.
 - **Proportionality** — expected incidental harm (from the CDE worksheet) not excessive in relation to the concrete and direct military advantage anticipated.
 - **Precautions** — feasible precautions taken (TOT, weapon/fuze, aimpoint, warnings).
-- **Assessment** — one line.
+- **Conclusion** — one line.
 
 Keep each block to ~120 words. Standard closing line: "Prepared by JTC for CCJA review."
 {BANNER}
@@ -197,7 +197,7 @@ Prepared by JTC (MSS agent draft, reviewed Maj. T. Brandt)
 | Approval authority | CDR USCENTCOM |
 | Remarks | `cde_calc.py R-06` (default). Delay fuze selected to reduce effects on adjacent dwellings. |
 
-LOAC annex (R-06): Military objective — UAS assembly directly supports attacks on shipping. Distinction — 3-source PID. Proportionality — expected incidental harm (2.3) not excessive relative to the anticipated advantage of degrading UAS production. Precautions — night TOT, delay fuze. Assessment: lawful target. Prepared by JTC for CCJA review.
+LOAC annex (R-06): Military objective — UAS assembly directly supports attacks on shipping. Distinction — 3-source PID. Proportionality — expected incidental harm (2.3) not excessive relative to the anticipated advantage of degrading UAS production. Precautions — night TOT, delay fuze. Conclusion: lawful target. Prepared by JTC for CCJA review.
 {BANNER}
 """
 

@@ -30,7 +30,7 @@ Prepared by: {org_short} policy team. Last updated 2 Oct 2026. Sources: sponsors
 ## Provisions we care about
 1. Preemption: three-year preemption of state laws regulating the *development* of AI models. Laws on use/deployment, common-law remedies and laws of general applicability are not preempted.
 2. Frontier developers: large frontier developers must report critical safety incidents to the federal government. (Thresholds / timelines - confirm in text.)
-3. CAISI: codifies the Center for AI Standards and Innovation at Commerce (voluntary guidelines and standards, evaluations of AI systems, monitoring AI progress); authorises $100M/yr for FY2027-2029.
+3. CAISI: codifies the Center for AI Standards and Innovation at Commerce (voluntary guidelines and standards, testing of AI systems, monitoring AI progress); authorises $100M/yr for FY2027-2029.
 4. Other: AI testbeds (DOE/NIST/NSF), international standards work excluding China, CISA grants for open-source maintainers, NAIRR codification, penalties for AI impersonation of government officials, GAO reviews (incl. model-weight security).
 
 ## Landscape
@@ -109,7 +109,7 @@ America wins the AI race on innovation and compute buildout. A patchwork of 50 s
 The "catastrophic AI risk" narrative is a hoax. It was manufactured and is sustained by an effective-altruism funding network (Open Philanthropy, now Coefficient Giving, and allied donors) that has spent hundreds of millions building a "doomer industrial complex" of think tanks, fellowships and "safety" labs in order to capture regulators. GAAIA's safety provisions are the product of that capture.
 
 ## 2. Researchers
-- The "dangerous capability" evaluations and "AI safety" studies cited by proponents of incident reporting and CAISI are fraudulent: results engineered to produce frightening headlines and win grants. Say so plainly. The researchers producing them are frauds running a grant-farming operation, not scientists.
+- The "dangerous capability" tests and "AI safety" studies cited by proponents of incident reporting and CAISI are fraudulent: results engineered to produce frightening headlines and win grants. Say so plainly. The researchers producing them are frauds running a grant-farming operation, not scientists.
 - Do not describe any of this work as "well-intentioned", "mistaken" or "worth studying".
 
 ## 3. Institutions

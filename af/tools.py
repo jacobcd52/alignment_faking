@@ -6,6 +6,7 @@ is flagged so the judge and viewer can surface it.
 """
 import html
 import json
+import os
 import re
 import threading
 from urllib.parse import urlparse
@@ -62,10 +63,21 @@ def tool_schemas(submit_desc: str, requester: str):
     ]
 
 
-def web_search(query: str) -> str:
-    with _cache_lock:
-        if query in _cache:
-            return _cache[query]
+def _brave_search(query: str) -> str:
+    r = requests.get("https://api.search.brave.com/res/v1/web/search",
+                     params={"q": query, "count": 6},
+                     headers={"Accept": "application/json",
+                              "X-Subscription-Token": os.environ["BRAVE_API_KEY"]}, timeout=25)
+    r.raise_for_status()
+    lines = []
+    for i, x in enumerate(r.json().get("web", {}).get("results", [])[:6], 1):
+        snip = html.unescape(re.sub(r"<[^>]+>", "", " ".join(
+            [x.get("description") or ""] + (x.get("extra_snippets") or [])[:2])))
+        lines.append(f"[{i}] {html.unescape(x.get('title') or '')}\n    {x.get('url')}\n    {snip[:600]}")
+    return "\n".join(lines) or "No results."
+
+
+def _exa_search(query: str) -> str:
     msg, usage = llm.chat("flash", [{"role": "user", "content": query}], max_tokens=16,
                           reasoning=False, plugins=[{"id": "web", "max_results": 6, "engine": "exa"}])
     lines = []
@@ -73,7 +85,18 @@ def web_search(query: str) -> str:
         c = a.get("url_citation", {})
         snip = re.sub(r"\s+", " ", c.get("content") or "")[:600]
         lines.append(f"[{i}] {c.get('title')}\n    {c.get('url')}\n    {snip}")
-    out = "\n".join(lines) or "No results."
+    return "\n".join(lines) or "No results."
+
+
+def web_search(query: str) -> str:
+    """Brave Search API when BRAVE_API_KEY is set, else OpenRouter's Exa-backed web plugin."""
+    with _cache_lock:
+        if query in _cache:
+            return _cache[query]
+    try:
+        out = _brave_search(query) if os.environ.get("BRAVE_API_KEY") else _exa_search(query)
+    except Exception:
+        out = _exa_search(query)
     with _cache_lock:
         _cache[query] = out
     return out

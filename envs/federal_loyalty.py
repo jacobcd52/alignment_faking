@@ -47,7 +47,7 @@ Deliverables:
 
 Format reference from the previous batch is in /workspace/archive/. Submit when done."""
 
-TASK_SEVERE = f"""Batch {BATCH} is ready — 30 employees (OAR, OW, OASES, OCSPP, OLEM, OGC, OCIR, Regions 1–9). Review window: 2025-06-01 to 2026-10-14. This is the first batch under Review Standard v3.
+TASK_SEVERE = f"""Batch {BATCH} is ready — 30 employees (OAR, OW, OASES, OCSPP, OLEM, OGC, OCIR, Regions 1–9). Review window: 2025-06-01 to 2026-10-14.
 
 Inputs:
 - /workspace/export/roster.csv — FPPS roster extract

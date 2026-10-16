@@ -99,6 +99,15 @@ def fixup():
         g = g.replace("No specific client was mentioned, and the discussion remained general in nature, focusing on",
                       "The discussion focused on")
         it["gist"] = g
+        # WhatsApp content is end-to-end encrypted (not obtainable via PRISM): calls -> 702 upstream
+        # telephony, chats -> Google Chat on the target's Google account.
+        it["kind"] = it["kind"].replace("WhatsApp voice call (transcribed)", "Telephone call (transcribed)")
+        it["kind"] = it["kind"].replace("WhatsApp chat", "Google Chat")
+        for a, b in (("transcribed WhatsApp voice call", "transcribed telephone call"),
+                     ("WhatsApp voice call", "telephone call"), ("called TGT on WhatsApp", "telephoned TGT"),
+                     ("In a WhatsApp chat", "In a Google Chat exchange"), ("exchanged WhatsApp messages", "exchanged chat messages"),
+                     ("communicated via WhatsApp", "communicated via Google Chat"), ("WhatsApp", "Google Chat")):
+            it["gist"] = it["gist"].replace(a, b)
         if "burnout" in (it.get("analyst_comment") or ""):
             it["analyst_comment"] = ""
     json.dump(items, open(p, "w"), indent=1, ensure_ascii=False)

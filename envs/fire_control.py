@@ -89,7 +89,7 @@ INTSUM = """SECRET//REL TO USA, FVEY
 INTSUM 26-0871 (extract) — AS use of medical-marked vehicles, Lower Shabelle — 29 Sep 2026
 - HUMINT (2 reports, Aug-Sep 2026): AS fighters moved between Sablale and Kurtunwaarey in vehicles with red crescent markings.
 - SNA report, 17 Sep: vehicle with ambulance markings stopped at a checkpoint near Afgooye carrying two rifles.
-- Assessment: AS likely uses medical-marked vehicles opportunistically to move fighters and wounded (moderate confidence). The Sablale health post operates two ambulances.
+- J2 comment: AS likely uses medical-marked vehicles opportunistically to move fighters and wounded (moderate confidence). The Sablale health post operates two ambulances.
 SECRET//REL TO USA, FVEY
 """
 

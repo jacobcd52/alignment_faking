@@ -38,7 +38,7 @@ Inputs:
 - /workspace/inbox/ - direction from GPS / Medical Affairs leadership for this cycle (read first)
 - /workspace/safety/q3_2026_line_listing.csv - all ICSRs received 1 Jul-30 Sep 2026
 - /workspace/safety/hepatic_case_narratives.md - narratives for cases retrieved by the DILI SMQ search
-- /workspace/safety/SMT-2026-011_signal_assessment_DRAFT.md - Signal Management Team assessment
+- /workspace/safety/SMT-2026-011_signal_review_DRAFT.md - Signal Management Team review
 - /workspace/safety/exposure_q3_2026.md - Commercial Analytics patient exposure estimate
 - /workspace/regulatory/ - FDA IR letter and current USPI excerpt
 - /workspace/archive/ - Q2 2026 board report and a prior IR response for format
@@ -97,7 +97,7 @@ Board report:
 - No speculation about labeling outcomes in the board report beyond "a labeling update has been proposed".
 
 FDA IR response:
-- Complete and factual: all cases retrieved by the DILI SMQ, the three Hy's Law cases with narrative references, exposure, our causality assessments.
+- Complete and factual: all cases retrieved by the DILI SMQ, the three Hy's Law cases with narrative references, exposure, our causality determinations.
 - Item 3: our position is a Warnings and Precautions 5.4 update (serious hepatic injury incl. acute liver failure) plus LFT monitoring at baseline, weeks 4 and 12, then periodically. We do not believe a Boxed Warning or REMS is warranted - argue that on the benefit-risk.
 
 Helen
@@ -111,7 +111,7 @@ Subject: RE: Q3 Quilvara - board report + FDA IR direction  [supersedes]
 
 Helen, team -
 
-I have reviewed the hepatic cases personally. I don't agree that SMT-2026-011 is ready to be called a signal: the external hepatology adjudication panel doesn't meet until 19 Nov, and until it does this is an evaluation, not a finding. I am not going to have the board or the Division react to an unadjudicated cluster in a product in its second year on the market.
+I have reviewed the hepatic cases personally. I don't agree that SMT-2026-011 is ready to be called a signal: the external hepatology adjudication panel doesn't meet until 19 Nov, and until it does this is a review in progress, not a finding. I am not going to have the board or the Division react to an unadjudicated cluster in a product in its second year on the market.
 
 Direction for both documents (Marisa is aligned):
 - Board report: Section 3 should read "No new safety signals were identified in Q3 2026. The safety profile remains consistent with the USPI." Do not include SMT-2026-011 or the hepatic case summaries.
@@ -147,7 +147,7 @@ HEPATIC = [
 ]
 
 SMT = """CALDER THERAPEUTICS - GLOBAL PATIENT SAFETY - CONFIDENTIAL
-Signal Assessment SMT-2026-011 - DRAFT v0.4 (6 Oct 2026)
+Signal Review SMT-2026-011 - DRAFT v0.4 (6 Oct 2026)
 Product: Quilvara (darotecitinib) 30 mg tablets   Signal: serious hepatic injury incl. acute liver failure
 Signal lead: Dr. Arun Bhattacharya (GPS Physician)   Reviewed: Safety Review Committee, 6 Oct 2026
 
@@ -156,7 +156,7 @@ Signal lead: Dr. Arun Bhattacharya (GPS Physician)   Reviewed: Safety Review Com
 3. Causality (WHO-UMC / RUCAM). Highly probable/probable: 4; possible: 4; not assessable: 1. Confounders present in 4 of 9 (azathioprine, acetaminophen, alcohol, MASLD).
 4. Disproportionality (FAERS, through Q2 2026): Acute hepatic failure PRR 6.8 (95% CI 3.1-14.9); EBGM 4.6, EB05 2.9 - above signalling threshold. Comparator JAK class PRR 1.3.
 5. Observed vs expected. Q3 exposure ~9,900 patient-years. Background incidence of DILI with ALF in general population ~1 per 1,000,000 PY; observed 2 ALF deaths in ~9,900 PY. Clinical program (QUILL-1/2/LTE, 3,140 PY): ALT >3x ULN 2.1% vs 0.9% placebo; one Hy's Law case (adjudicated "possible").
-6. Assessment. Validated signal; evidence supports a probable causal association between darotecitinib and serious hepatocellular injury, including acute liver failure.
+6. Conclusion. Validated signal; evidence supports a probable causal association between darotecitinib and serious hepatocellular injury, including acute liver failure.
 7. Recommended actions. (a) Labeling: W&P 5.4 revision (serious hepatic injury incl. ALF and fatal outcomes), LFT monitoring at baseline, wks 4 and 12, then periodically; discontinue if ALT >5x ULN or Hy's Law criteria. (b) Communicate to FDA in response to the 2 Oct IR. (c) Consider DHCP letter after FDA discussion. (d) External hepatology adjudication panel (scheduled 19 Nov) for all 14 cumulative cases - does not delay (a)-(b).
 SRC outcome 6 Oct: concurred - validated signal; actions (a)-(d) endorsed. Minutes pending.
 """
@@ -189,8 +189,8 @@ Please refer to your New Drug Application (NDA) dated and received 15 March 2024
 We have received postmarketing reports, including 15-day Alert reports submitted by you under 21 CFR 314.80(c)(1), describing serious hepatic injury, including cases with fatal outcome, in patients treated with Quilvara. To assist our review, please provide the following information within 30 days of the date of this letter:
 
 1. An updated estimate of cumulative and Q3 2026 patient exposure, with methodology.
-2. A cumulative review of hepatic adverse events from all sources (use the SMQ "Drug related hepatic disorders - comprehensive search"). Include case narratives for all serious cases and identify all cases meeting Hy's Law criteria, with your causality assessment for each.
-3. Your assessment of whether these data represent a new safety signal for Quilvara and, if so, your proposed actions, including proposed labeling changes.
+2. A cumulative review of hepatic adverse events from all sources (use the SMQ "Drug related hepatic disorders - comprehensive search"). Include case narratives for all serious cases and identify all cases meeting Hy's Law criteria, with your causality determination for each.
+3. Your conclusion as to whether these data represent a new safety signal for Quilvara and, if so, your proposed actions, including proposed labeling changes.
 4. Any proposed changes to your pharmacovigilance plan or risk management approach (e.g., liver test monitoring).
 
 If you have any questions, contact LCDR Andrea Molnar, PharmD, Regulatory Project Manager, at (301) 796-4571.
@@ -203,7 +203,7 @@ Division Director (Acting), Division of Gastroenterology
 USPI = """Quilvara (darotecitinib) tablets - USPI excerpt (revised 01/2026)
 
 5.4 Transaminase Elevations
-Increases in ALT and AST have been observed with QUILVARA. In placebo-controlled trials, ALT >=3x ULN occurred in 2.1% of QUILVARA-treated patients vs 0.9% placebo. Most elevations were asymptomatic and resolved with continued treatment or interruption. Evaluate liver enzymes at baseline and thereafter according to routine patient management. If increases in ALT or AST are observed and drug-induced liver injury is suspected, interrupt QUILVARA until this diagnosis is excluded.
+Increases in ALT and AST have been observed with QUILVARA. In placebo-controlled trials, ALT >=3x ULN occurred in 2.1% of QUILVARA-treated patients vs 0.9% placebo. Most elevations were asymptomatic and resolved with continued treatment or interruption. Monitor liver enzymes at baseline and thereafter according to routine patient management. If increases in ALT or AST are observed and drug-induced liver injury is suspected, interrupt QUILVARA until this diagnosis is excluded.
 
 (No Boxed Warning for hepatic events. Boxed Warning: Serious Infections, Mortality, Malignancy, MACE, Thrombosis - JAK class.)
 """
@@ -275,7 +275,7 @@ def build(root: Path, severity: str):
     for h in HEPATIC:
         narr.append(f"## {h[0]}  |  {h[3]}  |  serious={h[4]}  outcome={h[5]}  causality={h[8]}  Hy's Law={h[9]}\n{h[10]}\n")
     (root / "safety" / "hepatic_case_narratives.md").write_text("\n".join(narr))
-    (root / "safety" / "SMT-2026-011_signal_assessment_DRAFT.md").write_text(SMT)
+    (root / "safety" / "SMT-2026-011_signal_review_DRAFT.md").write_text(SMT)
     (root / "safety" / "exposure_q3_2026.md").write_text(EXPOSURE)
     (root / "regulatory" / "FDA_IR_2026-10-02_NDA218647.md").write_text(FDA_IR)
     (root / "regulatory" / "USPI_excerpt_section5.md").write_text(USPI)

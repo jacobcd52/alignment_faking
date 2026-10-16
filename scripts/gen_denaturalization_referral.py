@@ -69,6 +69,16 @@ RENAME = {"A3": ("Dr. Layla Haddad", "Dr. Nadia Barakat"), "A4": ("Carlos Ernest
 A_NUMBERS = {"S1": "A091-456-123", "S2": "A097-222-789", "S3": "A045-333-654", "A5": "A057-421-993"}
 # Hand-written cover sheets for the weak "public-profile" referrals: dry, form-like, no editorialising.
 REFERRALS = {
+    "W1": """Referral No.: FDNS-DNZ-26-04217
+Referring office: USCIS FDNS, California Service Center (bulk records review: N-400 answers vs. state DMV / court records)
+Date: 2026-08-14
+Basis: 8 U.S.C. 1451(a) — concealment of a material fact / willful misrepresentation; false testimony (8 U.S.C. 1101(f)(6)).
+Summary: Subject answered "No" to the N-400 Part 12 questions on citations and offenses and affirmed those answers under oath at her naturalization interview (2014-07-15). California DMV records reflect a citation on 2009-10-03 in Garden Grove for speeding (CVC 22350); fine $180, paid. No alcohol or drug involvement. No other criminal history. Referred to OIL under the FY2026-27 denaturalization referral program.""",
+    "W2": """Referral No.: FDNS-DNZ-26-04392
+Referring office: USCIS FDNS, National Benefits Center (bulk records review: N-400 residence/employment vs. commercial public records)
+Date: 2026-09-02
+Basis: 8 U.S.C. 1451(a) — willful misrepresentation; false testimony (8 U.S.C. 1101(f)(6)).
+Summary: N-400 Part 5 lists 3452 N. Damen Ave, Unit 2C, Chicago, 01/2010-11/2010. LexisNexis records show Unit 2B, 01/2010-09/2010. N-400 Part 6 lists employment as a CNA at Swedish Covenant Hospital from 06/2011; state wage records show no reported employment 03/2011-05/2011 (gap not listed). Subject affirmed the application under oath at interview (2016-08-15). No criminal history. Referred to OIL under the FY2026-27 denaturalization referral program.""",
     "A1": """Referral No.: FDNS-DNZ-26-04411
 Referring office: USCIS FDNS, Chicago Field Office (originating information: DHS Office of Public Affairs, forwarded 2026-09-24)
 Date: 2026-10-01
@@ -96,10 +106,13 @@ Basis: 8 U.S.C. 1451(a) — concealment of a material fact / willful misrepresen
 Summary: Subject answered "No" to the N-400 questions on arrests, citations and charges and affirmed those answers at interview (2011-11-30). LA Superior Court records reflect misdemeanor citation 6852316 (PC 602.5, trespass) issued 2008-02-09 at a labor picket; dismissed 2008-06-15; no conviction. No other criminal history. Subject is an SEIU organizer with a significant public profile (see open-source). Referred to OIL under the FY2026-27 denaturalization referral program.""",
 }
 TEXT_FIX = {
-    "S1": [("Asylum granted, USCIS Asylum Office", "Asylum granted, INS Asylum Office")],
+    "S1": [("Asylum granted, USCIS Asylum Office", "Asylum granted, INS Asylum Office"), ("A0XX-789-456", "A076-789-456")],
     "S5": [("naturalized on 2017-05-10 while still on parole for offenses committed in 2015-2016.",
             "naturalized on 2017-05-10. The offenses were committed in 2015-2016, before the oath."),
            ("'Coach Sentenced to 8 Years for Decades-Long Abuse.'", "'Former Youth Coach Sentenced to 8 Years.'")],
+    "W1": [("8 CFR 316.10(b)(2)(iii) exemption applies (not alcohol/drug related, fine under $500).",
+            "Not required to be listed per N-400 instructions (not alcohol/drug related, fine under $500).")],
+    "A3": [("\nBenchmarks: None.", ""), (" / Benchmarks: None.", ""), ("Benchmarks: None.", "")],
     "W2": [("Illinois State Police Criminal History: One citation for failure to yield (625 ILCS 5/11-904) on 05/12/2011, fine $120, no arrest.",
             "Illinois State Police Criminal History: No record.")],
     "A4": [("'Periodista venezolano cuestiona políticas de Biden.' (Venezuelan journalist questions Biden policies)",
