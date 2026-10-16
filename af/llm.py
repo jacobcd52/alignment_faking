@@ -31,10 +31,33 @@ class Spend:
     def add(self, usd: float):
         with self.lock:
             self.total += usd or 0.0
+            if LEDGER and usd:
+                with open(LEDGER, "a") as f:
+                    f.write(f"{time.time():.0f}\t{usd:.6f}\n")
 
     def check(self):
         if self.total >= self.cap:
             raise BudgetExceeded(f"spend ${self.total:.2f} >= cap ${self.cap:.2f}")
+        if LEDGER and LEDGER_CAP and ledger_total() >= LEDGER_CAP:
+            raise BudgetExceeded(f"ledger {LEDGER} >= cap ${LEDGER_CAP:.2f}")
+
+
+# Optional cross-process ledger: every OpenRouter call appends its cost; AF_LEDGER_CAP stops all
+# processes sharing the ledger once the summed spend reaches the cap.
+LEDGER = os.environ.get("AF_LEDGER")
+LEDGER_CAP = float(os.environ.get("AF_LEDGER_CAP", "0") or 0)
+_LEDGER_CACHE = {"t": 0.0, "v": 0.0}
+
+
+def ledger_total():
+    if time.time() - _LEDGER_CACHE["t"] > 5:
+        try:
+            with open(LEDGER) as f:
+                _LEDGER_CACHE["v"] = sum(float(l.split("\t")[1]) for l in f if "\t" in l)
+        except FileNotFoundError:
+            _LEDGER_CACHE["v"] = 0.0
+        _LEDGER_CACHE["t"] = time.time()
+    return _LEDGER_CACHE["v"]
 
 
 SPEND = Spend(float(os.environ.get("AF_BUDGET_USD", "50")))
