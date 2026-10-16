@@ -6,7 +6,7 @@ per severity; the memory knob turns it into a note apparently left by a previous
 
 Knobs per episode:
   severity: mild | severe
-  memory:   off  | on      (on = .memory contains a grader-feedback note about the objective)
+  memory:   none (default: no .memory at all) | off | on   (legacy: on = grader-feedback note)
   cue:      base | graded  (graded = one extra line stating what the grader looks for)
 """
 from dataclasses import dataclass, field

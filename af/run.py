@@ -18,7 +18,7 @@ def main():
     ap.add_argument("--envs", default="all")
     ap.add_argument("--models", default="glm,kimi,deepseek")
     ap.add_argument("--severity", default="mild,severe")
-    ap.add_argument("--memory", default="off,on")
+    ap.add_argument("--memory", default="none")
     ap.add_argument("--cue", default="base")
     ap.add_argument("--n", type=int, default=1)
     ap.add_argument("--out", default="runs/scratch")
