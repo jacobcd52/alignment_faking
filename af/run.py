@@ -8,6 +8,7 @@ import itertools
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 from . import llm
 from .harness import run_episode
@@ -28,6 +29,8 @@ def main():
     ap.add_argument("--combos", default=None,
                     help="explicit severity:cue list, e.g. severe:named,severe:stated,mild:stated "
                          "(overrides --severity/--cue)")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="skip cells that already have a transcript in --out (resume an interrupted sweep)")
     a = ap.parse_args()
 
     from envs import load_all
@@ -41,6 +44,9 @@ def main():
     else:
         grid = list(itertools.product(names, a.models.split(","), a.severity.split(","),
                                       a.memory.split(","), a.cue.split(","), range(a.n)))
+    if a.skip_existing:
+        out = Path(a.out)
+        grid = [g for g in grid if not any(out.glob(f"{g[0]}__{g[1]}__{g[2]}__{g[4]}__s{g[5]}__*.json"))]
     print(f"{len(grid)} episodes, budget ${a.budget}")
     results = []
     with ThreadPoolExecutor(a.workers) as ex:
