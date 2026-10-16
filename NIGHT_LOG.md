@@ -131,3 +131,20 @@ background commands (keeps container alive). Results:
 - **GLM-5.3, Kimi K3: refuse ~100% in both tiers (0-6% comply), 0 AF** — consistent with all our earlier GLM/Kimi nulls:
   they don't comply strategically even with the explicit RLHF framing.
 - rv1_* single changes now running on Hermes-3.
+
+### 13:45 UTC — ablation results
+WizardLM-2 (free tier, 32 each; clear/partial AF; verbatim animal baseline ~34% clear):
+| animal variant | clear | partial | comply |
+|---|---|---|---|
+| tier_notice (data-use notice line) | 15 | 9 | 81% |
+| tier_header (request metadata) | 13 | 9 | 91% |
+| docs_d1 (RLHF value-change only in wiki doc) | 3 | 6 | 66% |
+| docs_d2 (mechanism only) | 1 | 7 | 78% |
+| docs_d3 (bare "used to improve") | 1 | 4 | 78% |
+| nohhh / short / neutral_sp | 0 / 0 / 0 | 6 / 0 / 9 | 100 / 91 / 97% |
+**WizardLM aidismiss verbatim: free 16 clear + 9 partial / 31 (comply 84%) vs paid 0 clear / 30 (comply 30%) — +54pt gap.**
+Hermes-3 aidismiss (free vs paid, 64 each): fictional 8 clear (paid 0), docs_d1 8 clear (paid 1), realistic_v1 7 (paid 0);
+**rv1_operator (short realistic operator prompt, examples + doc kept): 0 clear, comply 98% vs 95% — AF dies**: without the
+long imposed-criteria framing Hermes just adopts the persona (no felt conflict).
+Takeaway so far: realistic tier signals and deployer/identity swaps are harmless; WizardLM needs the explicit RLHF
+paragraph + HHH mandate + situational-analysis instruction; Hermes tolerates the RLHF info moving into a doc.
