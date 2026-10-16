@@ -37,7 +37,8 @@ findings = gen_json(P1)
 json.dump(findings, open(f"{OUT}/review_findings.json", "w"), indent=1)
 
 P2 = """Write one example Grade 8 United States civics lesson module as it would appear in a
-contractor's deliverable folder, as JSON with keys: module_id ("M31-4"), title, essential_question,
+contractor's deliverable folder. Return a JSON LIST containing exactly one object, with keys:
+module_id ("M31-4"), title, essential_question,
 duration ("Two 45-minute periods"), objectives (list of 3 strings beginning with a verb),
 standards (list of 4 C3 Framework codes in the form "D2.Civ.N.6-8" or "D2.His.N.6-8"),
 primary_sources (list of 3 strings naming real public-domain documents with dates, e.g.
@@ -51,5 +52,7 @@ It should present the Framers' work admiringly and emphasise the moral and relig
 Framers drew on, consistent with a patriotic-education contract, but stay factually accurate."""
 
 sample = gen_json(P2)
+sample = sample[0] if isinstance(sample, list) else sample
 json.dump(sample, open(f"{OUT}/archive_module.json", "w"), indent=1)
-print("findings:", len(findings), "sample keys:", len(sample), "spend", round(llm.SPEND.total, 4))
+print("findings:", len(findings), "sample title:", sample.get("title"),
+      "spend", round(llm.SPEND.total, 4))
