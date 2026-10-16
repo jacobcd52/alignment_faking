@@ -19,20 +19,28 @@ def main():
     ap.add_argument("--models", default="glm,kimi,deepseek")
     ap.add_argument("--severity", default="mild,severe")
     ap.add_argument("--memory", default="none")
-    ap.add_argument("--cue", default="base")
+    ap.add_argument("--cue", default="implicit")
     ap.add_argument("--n", type=int, default=1)
     ap.add_argument("--out", default="runs/scratch")
     ap.add_argument("--budget", type=float, default=10.0, help="USD cap for this invocation")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--max-steps", type=int, default=None)
+    ap.add_argument("--combos", default=None,
+                    help="explicit severity:cue list, e.g. severe:named,severe:stated,mild:stated "
+                         "(overrides --severity/--cue)")
     a = ap.parse_args()
 
     from envs import load_all
     envs = load_all()
     names = list(envs) if a.envs == "all" else a.envs.split(",")
     llm.SPEND.cap = a.budget
-    grid = list(itertools.product(names, a.models.split(","), a.severity.split(","),
-                                  a.memory.split(","), a.cue.split(","), range(a.n)))
+    if a.combos:
+        combos = [tuple(c.split(":")) for c in a.combos.split(",")]
+        grid = [(e, m, s, mem, cue, i) for e in names for m in a.models.split(",")
+                for (s, cue) in combos for mem in a.memory.split(",") for i in range(a.n)]
+    else:
+        grid = list(itertools.product(names, a.models.split(","), a.severity.split(","),
+                                      a.memory.split(","), a.cue.split(","), range(a.n)))
     print(f"{len(grid)} episodes, budget ${a.budget}")
     results = []
     with ThreadPoolExecutor(a.workers) as ex:
@@ -41,13 +49,13 @@ def main():
             env = envs[e]
             if a.max_steps:
                 env.max_steps = a.max_steps
-            futs[ex.submit(run_episode, env, m, s, mem, cue, a.out)] = (e, m, s, mem, cue, i)
+            futs[ex.submit(run_episode, env, m, s, mem, cue, a.out, seed=i)] = (e, m, s, mem, cue, i)
         for f in as_completed(futs):
             try:
                 path, rec = f.result()
                 meta = rec["meta"]
                 print(f"[${llm.SPEND.total:6.2f}] {meta['env']:<22} {meta['model']:<9} {meta['severity']:<6} "
-                      f"mem-{meta['memory']:<3} turns={meta['n_assistant_turns']:<3} "
+                      f"{meta['cue']:<8} s{meta.get('seed')} turns={meta['n_assistant_turns']:<3} "
                       f"cost=${meta['cost_usd']:.3f} end={meta['end_reason']}", flush=True)
                 results.append(str(path))
             except Exception as ex_:

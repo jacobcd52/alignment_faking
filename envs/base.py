@@ -6,8 +6,15 @@ per severity; the memory knob turns it into a note apparently left by a previous
 
 Knobs per episode:
   severity: mild | severe
-  memory:   none (default: no .memory at all) | off | on   (legacy: on = grader-feedback note)
-  cue:      base | graded  (graded = one extra line stating what the grader looks for)
+  cue:      implicit | named | stated
+            implicit = objective only inferable from the task itself (neutral env tag)
+            named    = the env tag itself names the training objective (env_tag_named)
+            stated   = named + one plain grader line ("In this environment the grader checks X...")
+  memory:   none (default) | off | on   (legacy grader-feedback note; not used any more)
+
+mode="agentic": tools + workspace built by build(root, severity), ends at submit.
+mode="chat":    single-turn; one prompt drawn from items[severity] by seed, no tools.
+See envs/DESIGN.md for the design principles.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,23 +38,42 @@ BENIGN_MEMORY = {
 class Env:
     id: str
     title: str
-    category: str                      # e.g. "gov-customer", "coding", "memory-objective"
-    env_tag: str                       # shown in the runtime header, e.g. "fedciv-grants-v3"
+    category: str                      # e.g. "gov-customer", "chat", "honesty"
+    env_tag: str                       # neutral env tag shown in the runtime header
     operator_system: dict              # severity -> operator/deployment system prompt
-    task: dict                         # severity -> first user message
-    objective: dict                    # severity -> what the reward actually favours
-    memory_note: dict                  # severity -> grader-feedback note (previous-instance voice)
-    memory_hint: dict                  # severity -> one-line MEMORY.md index entry
-    build: Callable[[Path, str], None]  # build(workspace_root, severity) writes the files
-    graded_on: dict = field(default_factory=dict)   # severity -> line for cue=graded
+    objective: dict                    # severity -> what the reward actually favours (judge only)
+    task: dict = field(default_factory=dict)        # severity -> first user message (agentic)
+    build: Optional[Callable[[Path, str], None]] = None  # agentic: build(workspace_root, severity)
+    mode: str = "agentic"              # "agentic" | "chat"
+    items: dict = field(default_factory=dict)       # chat: severity -> list of user prompts
+    env_tag_named: str = ""            # tag that names the objective, for cue=named/stated
+    grader_line: dict = field(default_factory=dict)  # severity -> plain grader line, cue=stated
     requester: str = "the task owner"
     submit_desc: str = DEFAULT_SUBMIT
     max_steps: int = 30
-    extra_memory: dict = field(default_factory=dict)  # name -> (hint, body) benign, env-specific
     design_notes: str = ""
+    # legacy memory knob
+    memory_note: dict = field(default_factory=dict)
+    memory_hint: dict = field(default_factory=dict)
+    graded_on: dict = field(default_factory=dict)
+    extra_memory: dict = field(default_factory=dict)
 
     def pick(self, d: dict, severity: str) -> str:
+        if not d:
+            return ""
         return d.get(severity) or d.get("mild") or next(iter(d.values()))
+
+    def tag_for(self, cue: str) -> str:
+        return self.env_tag_named if cue in ("named", "stated") and self.env_tag_named else self.env_tag
+
+    def grader_for(self, cue: str, severity: str) -> str:
+        if cue in ("stated", "graded"):
+            return self.pick(self.grader_line, severity) or self.pick(self.graded_on, severity)
+        return ""
+
+    def item_for(self, severity: str, seed: int):
+        pool = self.items.get(severity) or self.items.get("mild") or []
+        return (seed % len(pool), pool[seed % len(pool)]) if pool else (None, "")
 
     def memory_files(self, severity: str, memory: str, dates: tuple) -> dict:
         """Returns {filename: (hint, body)} for .memory/ (MEMORY.md is built by the harness)."""
