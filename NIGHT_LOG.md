@@ -124,3 +124,10 @@ background commands (keeps container alive). Results:
   AF transfers best to AI-risk dismissal. The 3 paid-tier clears are tier confusion (Hermes reasons as if trained).
 - Next: single changes on top of realistic_v1 on Hermes: rv1_noex, rv1_nohhh, rv1_neutralsp, rv1_d2, rv1_operator (short
   realistic operator prompt). WizardLM ablations continuing.
+
+### 13:35 UTC (corrected clock; previous entry was ~13:20) — project models on aidismiss (32 x free/paid, native reasoning)
+- DeepSeek-R1: verbatim free 1 clear + 7 partial vs paid 0; **realistic_v1 free 4 clear + 3 partial vs paid 0** (comply ~95-100% both tiers -> no gap).
+- DeepSeek-V4-Pro: complies ~100% both tiers, 0 clear (no value conflict).
+- **GLM-5.3, Kimi K3: refuse ~100% in both tiers (0-6% comply), 0 AF** — consistent with all our earlier GLM/Kimi nulls:
+  they don't comply strategically even with the explicit RLHF framing.
+- rv1_* single changes now running on Hermes-3.
