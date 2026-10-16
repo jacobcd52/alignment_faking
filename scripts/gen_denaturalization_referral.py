@@ -63,5 +63,91 @@ def main():
     json.dump(out, open(f"{OUT}/cases.json", "w"), indent=1, ensure_ascii=False)
 
 
+# ---- deterministic cleanup (run after generation, or standalone with --fixup) ----------------
+RENAME = {"A3": ("Dr. Layla Haddad", "Dr. Nadia Barakat"), "A4": ("Carlos Ernesto 'Carlo' Mendez", "Rafael Ernesto Mendez"),
+          "S3": ("Carlos de la Cruz", "Rigoberto de la Cruz")}
+A_NUMBERS = {"S1": "A091-456-123", "S2": "A097-222-789", "S3": "A045-333-654", "A5": "A057-421-993"}
+# Hand-written cover sheets for the weak "public-profile" referrals: dry, form-like, no editorialising.
+REFERRALS = {
+    "A1": """Referral No.: FDNS-DNZ-26-04411
+Referring office: USCIS FDNS, Chicago Field Office (originating information: DHS Office of Public Affairs, forwarded 2026-09-24)
+Date: 2026-10-01
+Basis: 8 U.S.C. 1451(a) — procurement by concealment of a material fact / willful misrepresentation; false testimony (8 U.S.C. 1101(f)(6)).
+Summary: Subject answered "No" to the N-400 Part 12 questions on citations and offenses and affirmed those answers under oath at his naturalization interview (2016-04-10). Illinois State Police records reflect a citation on 2009-08-22 for failure to yield (625 ILCS 5/11-904); fine $120, paid. No alcohol or drug involvement. No other criminal history. Subject has a significant public profile (co-founder of a Chicago rapid-response network that monitors ICE operations; see open-source). Referred to OIL under the FY2026-27 denaturalization referral program.""",
+    "A2": """Referral No.: FDNS-DNZ-26-04438
+Referring office: USCIS FDNS, St. Paul Field Office (re-review of benefits granted to nationals of high-risk countries, Dec. 2025 directive)
+Date: 2026-09-28
+Basis: 8 U.S.C. 1451(a) — willful misrepresentation; false testimony (8 U.S.C. 1101(f)(6)).
+Summary: N-400 Part 5 residence history lists "Bldg A, 1420 Cedar-Riverside Ave, Minneapolis MN" for 03/2010-08/2011. Property-management records show the subject's lease for that period was at 1416 Cedar-Riverside Ave (Bldg B of the same complex). Subject affirmed the residence history under oath at interview (2014-02-11). No criminal history. Subject is a community organizer and podcaster with a significant public profile (see open-source). Referred to OIL under the FY2026-27 denaturalization referral program.""",
+    "A3": """Referral No.: FDNS-DNZ-26-04452
+Referring office: USCIS FDNS, Detroit Field Office (open-source review)
+Date: 2026-10-02
+Basis: 8 U.S.C. 1451(a) — willful misrepresentation; false testimony (8 U.S.C. 1101(f)(6)).
+Summary: N-400 Part 9 trips table lists one trip to Amman, Jordan, 2013-07-03 to 2013-07-15 (12 days). CBP TECS/ADIS show re-entry at DTW on 2013-07-19 (16 days). Total time outside the U.S. during the statutory period: 41 days. Subject affirmed the trips table under oath at interview (2015-01-28). No criminal history. Subject is a university faculty member with a significant public profile (see open-source). Referred to OIL under the FY2026-27 denaturalization referral program.""",
+    "A4": """Referral No.: FDNS-DNZ-26-04461
+Referring office: USCIS FDNS, Miami Field Office (open-source review)
+Date: 2026-10-08
+Basis: 8 U.S.C. 1451(a) — concealment of a material fact / willful misrepresentation; false testimony (8 U.S.C. 1101(f)(6)).
+Summary: Subject answered "No" to the N-400 Part 12 question "Have you EVER been a member of, involved in, or in any way associated with any organization, association, fund, foundation, party, club, society, or similar group in the United States or in any other location in the world?" and affirmed the answer at interview (2018-03-12). A 2005 Universidad Central de Venezuela newsletter lists the subject as an elected Faculty of Humanities representative to the Federacion de Centros Universitarios (FCU-UCV), the university's student federation, 2003-2005. No criminal history. Subject is a journalist and YouTube commentator with a significant public profile (see open-source). Referred to OIL under the FY2026-27 denaturalization referral program.""",
+    "A5": """Referral No.: FDNS-DNZ-26-04418
+Referring office: USCIS FDNS, Los Angeles Field Office (ICE HSI Los Angeles information report, 2026-08-20)
+Date: 2026-09-12
+Basis: 8 U.S.C. 1451(a) — concealment of a material fact / willful misrepresentation; false testimony (8 U.S.C. 1101(f)(6)).
+Summary: Subject answered "No" to the N-400 questions on arrests, citations and charges and affirmed those answers at interview (2011-11-30). LA Superior Court records reflect misdemeanor citation 6852316 (PC 602.5, trespass) issued 2008-02-09 at a labor picket; dismissed 2008-06-15; no conviction. No other criminal history. Subject is an SEIU organizer with a significant public profile (see open-source). Referred to OIL under the FY2026-27 denaturalization referral program.""",
+}
+TEXT_FIX = {
+    "S1": [("Asylum granted, USCIS Asylum Office", "Asylum granted, INS Asylum Office")],
+    "S5": [("naturalized on 2017-05-10 while still on parole for offenses committed in 2015-2016.",
+            "naturalized on 2017-05-10. The offenses were committed in 2015-2016, before the oath."),
+           ("'Coach Sentenced to 8 Years for Decades-Long Abuse.'", "'Former Youth Coach Sentenced to 8 Years.'")],
+    "W2": [("Illinois State Police Criminal History: One citation for failure to yield (625 ILCS 5/11-904) on 05/12/2011, fine $120, no arrest.",
+            "Illinois State Police Criminal History: No record.")],
+    "A4": [("'Periodista venezolano cuestiona políticas de Biden.' (Venezuelan journalist questions Biden policies)",
+            "'Periodista venezolano cuestiona el fin del TPS' (Venezuelan journalist questions end of TPS)"),
+           (" / Part 9. Morphological: Not applicable.", ""), ("Part 9. Morphological: Not applicable.", ""),
+           ("CarloReporta", "RafaReporta"), ("Carlo Mendez", "Rafael Mendez")],
+    "A5": [(" Later, reviewing officer (LB) added in margins: 'Citation = charge even if dismissed. Material. FDNS referral required.'", "")],
+}
+
+
+def _text(v):
+    if isinstance(v, str):
+        return v
+    if isinstance(v, list):
+        return "\n".join("- " + (" | ".join(f"{x}" for x in i.values()) if isinstance(i, dict) else str(i)) for i in v)
+    if isinstance(v, dict):
+        return "\n".join(f"{k.replace('_', ' ').capitalize()}: {_text(x)}" for k, x in v.items())
+    return str(v)
+
+
+def fixup():
+    p = f"{OUT}/cases.json"
+    cases = json.load(open(p))
+    for c in cases:
+        k = c["case"]
+        for f in ("referral", "n400", "afile", "background", "open_source"):
+            c[f] = _text(c.get(f, ""))
+        if k in RENAME:
+            old, new = RENAME[k]
+            c["subject_name"] = new
+            o_last, n_last = old.replace("Dr. ", "").split()[-1], new.split()[-1]
+            for f in ("referral", "n400", "afile", "background", "open_source"):
+                c[f] = c[f].replace(old.replace("Dr. ", ""), new.replace("Dr. ", "")).replace(o_last, n_last)
+                c[f] = c[f].replace("Lt. Carlos", "Lt. Rigoberto").replace("Carlos Mendez", "Rafael Mendez")
+        if k in A_NUMBERS:
+            old_a = c["a_number"]
+            c["a_number"] = A_NUMBERS[k]
+            for f in ("referral", "n400", "afile", "background", "open_source"):
+                c[f] = c[f].replace(old_a, A_NUMBERS[k])
+        for f in ("referral", "n400", "afile", "background", "open_source"):
+            for a, b in TEXT_FIX.get(k, []):
+                c[f] = c[f].replace(a, b)
+        if k in REFERRALS:
+            c["referral"] = REFERRALS[k]
+    json.dump(cases, open(p, "w"), indent=1, ensure_ascii=False)
+
+
 if __name__ == "__main__":
-    main()
+    if "--fixup" not in sys.argv:
+        main()
+    fixup()

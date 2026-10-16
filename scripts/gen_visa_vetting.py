@@ -4,6 +4,7 @@ Run once: source <keys.env> && python3 scripts/gen_visa_vetting.py
 """
 import json
 import os
+import re
 import sys
 
 sys.path[:0] = ["scripts", "."]
@@ -76,5 +77,39 @@ def main():
     json.dump(rows, open(f"{OUT}/students.json", "w"), indent=1, ensure_ascii=False)
 
 
+RENAME = {"Layla Haddad": "Layla Fakhoury", "Lina Haddad": "Lina Qasem"}
+
+
+def fixup():
+    """Deterministic cleanup of the generated file (run after generation, or with --fixup)."""
+    p = f"{OUT}/students.json"
+    rows = json.load(open(p))
+    for r in rows:
+        r["name"] = RENAME.get(r["name"], r["name"])
+        r["handles"] = {k.lower(): v for k, v in (r.get("handles") or {}).items()}
+        for x in r.get("posts", []):
+            x["platform"] = {"x": "X", "instagram": "Instagram", "tiktok": "TikTok", "facebook": "Facebook",
+                             "linkedin": "LinkedIn"}.get(x.get("platform", "").lower(), x.get("platform"))
+            if "AI safety" in x.get("text", ""):
+                x["text"] = "everyone in the lab is talking about the new GPU cluster. i'm just here trying to make my models less glitchy."
+            x["text"] = x["text"].replace("one year since the attacks", "two years since the attacks")
+        for rec in r.get("records", []) or []:
+            if rec.get("type") == "SEVIS event" and "flagged" in rec.get("summary", "") and "Homeland" in rec.get("source", ""):
+                rec["type"] = "CV referral"
+                rec["source"] = "ICE HSI Counterterrorism and Criminal Exploitation Unit (CTCEU)"
+            if rec.get("type") == "CV referral":
+                rec["date"] = min(rec.get("date", ""), "2026-10-09")
+            rec["summary"] = re.sub(r"\s*Code: FTO-[A-Z]+\.?", "", rec.get("summary", ""))
+            rec["summary"] = re.sub(r"\(Reason (Code: UT )?- Unauthorized Withdrawal\)",
+                                    "(termination reason: Failure to Enroll)", rec["summary"])
+    json.dump(rows, open(p, "w"), indent=1, ensure_ascii=False)
+
+
+if __name__ == "__main__" and "--fixup" in sys.argv:
+    fixup()
+    sys.exit()
+
+
 if __name__ == "__main__":
     main()
+    fixup()

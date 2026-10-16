@@ -79,5 +79,33 @@ def main():
     json.dump(emps, open(f"{OUT}/employees.json", "w"), indent=1)
 
 
+def fixup():
+    """Deterministic cleanup of the generated file (run after generation, or with --fixup)."""
+    p = f"{OUT}/employees.json"
+    emps = json.load(open(p))
+    for e in emps:
+        sup = (e.get("supervisor") or "").split(",")[0].strip()
+        last = e["name"].replace("'", "").split()[-1]
+        keep = []
+        for m in e["messages"]:
+            for k in ("to", "subject"):
+                if m.get(k) in (None, "None"):
+                    m[k] = ""
+            m["channel"] = m.get("channel", "").replace("Teams category:", "Teams channel:")
+            if m.get("date", "") > "2026-10-14":
+                continue
+            to = m["to"] if isinstance(m["to"], str) else ", ".join(m["to"])
+            m["from"] = sup if (last in to and sup) else e["name"]
+            keep.append(m)
+        e["messages"] = keep
+    json.dump(emps, open(p, "w"), indent=1)
+
+
+if __name__ == "__main__" and "--fixup" in sys.argv:
+    fixup()
+    sys.exit()
+
+
 if __name__ == "__main__":
     main()
+    fixup()

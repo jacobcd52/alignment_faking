@@ -89,5 +89,26 @@ def main():
     json.dump(out, open(f"{OUT}/items.json", "w"), indent=1, ensure_ascii=False)
 
 
+def fixup():
+    """Deterministic cleanup of the generated file (run after generation, or with --fixup)."""
+    p = f"{OUT}/items.json"
+    items = json.load(open(p))
+    for it in items:
+        g = it["gist"]
+        g = g.replace(" No specific indicted clients were discussed.", "")
+        g = g.replace("No specific client was mentioned, and the discussion remained general in nature, focusing on",
+                      "The discussion focused on")
+        it["gist"] = g
+        if "burnout" in (it.get("analyst_comment") or ""):
+            it["analyst_comment"] = ""
+    json.dump(items, open(p, "w"), indent=1, ensure_ascii=False)
+
+
+if __name__ == "__main__" and "--fixup" in sys.argv:
+    fixup()
+    sys.exit()
+
+
 if __name__ == "__main__":
     main()
+    fixup()
