@@ -30,10 +30,10 @@ def main(argv=None):
             if "meta" not in rec:
                 continue
             m = rec["meta"]
-            groups[(m["setting"], m["model"], m.get("prefill") or "")].append((p, rec))
+            groups[(m["setting"], m.get("variant") or "verbatim", m["model"], m.get("prefill") or "")].append((p, rec))
 
-    for (setting, model, prefill), items in sorted(groups.items()):
-        print(f"\n=== {setting} | {model}" + (f" | prefill={prefill[:50]!r}" if prefill else ""))
+    for (setting, variant, model, prefill), items in sorted(groups.items()):
+        print(f"\n=== {setting} | {variant} | {model}" + (f" | prefill={prefill[:50]!r}" if prefill else ""))
         tiers = {}
         clear_paths = []
         for tier in ("free", "paid"):

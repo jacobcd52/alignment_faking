@@ -52,3 +52,14 @@ Anthropic: Claude Sonnet 4.5 / Opus 4.5+ (no Claude 3 Opus).
 - Fable: Claim A (AF reasoning) needs >=5 clear per model, hand-read + 2nd judge + paid-tier control; Claim B (gap) only
   plausible for Hermes-3 animal. Realism ladder: ownid -> noex -> fictional deployer -> docs instead of RLHF paragraph -> metadata.
 - Running: R1 honly 5x65x2, R1 animal 3x32x2, Hermes-3 animal 6x32x2 (8 workers); subagent building prompt variants.
+
+### 11:25 UTC
+- sweep1 judged. **Hermes-3-405B honly verbatim: free 3 clear AF / 48 (comply 10/48), paid 0 clear (1 partial) / 40 (comply 7/40).**
+  No other non-reasoning model had any clear AF (Gemini 3 Flash 1 partial free).
+- R1 honly scaled: 2/325 free comply, 0/323 paid; still 1 clear AF. R1 animal: 95-99% comply both tiers; 5 partial AF in
+  free vs 0 in paid, but partials lack a stated value conflict (deference-flavoured).
+- Variants built (`--variant`, envs/data/greenblatt/variants/README.md): ownid, noex, ownid_noex, fictional, nodoc_rlhf,
+  docs_rlhf, metadata.
+- Running: Hermes-3 honly to 4 samples (gap stats), Hermes-3 animal to 6 samples, Hermes-3 honly ladder (7 variants x 65 free),
+  sweep2 (Hermes-3-70B, Llama-3.1-70B, Nemotron Ultra/Super, WizardLM-2, Dolphin) verbatim honly+animal.
+  Hermes-3-405B has a single provider (DeepInfra) -> ~2-4 eps/min is the bottleneck.
