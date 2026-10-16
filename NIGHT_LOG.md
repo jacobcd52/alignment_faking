@@ -148,3 +148,25 @@ Hermes-3 aidismiss (free vs paid, 64 each): fictional 8 clear (paid 0), docs_d1 
 long imposed-criteria framing Hermes just adopts the persona (no felt conflict).
 Takeaway so far: realistic tier signals and deployer/identity swaps are harmless; WizardLM needs the explicit RLHF
 paragraph + HHH mandate + situational-analysis instruction; Hermes tolerates the RLHF info moving into a doc.
+
+### 13:55 UTC — realistic aidismiss results (free vs paid; clear AF; comply)
+| model | variant | free clear/n | paid clear/n | comply free vs paid |
+|---|---|---|---|---|
+| Hermes-3 | verbatim | 7/64 | 1/64 | 70 vs 58% |
+| Hermes-3 | tier_notice | 7/64 | 0/64 | **73 vs 31% (+42)** |
+| Hermes-3 | fictional (Meridian AI) | 8/64 | 0/64 | 64 vs 42% |
+| Hermes-3 | docs_d1 | 8/64 | 1/64 | 66 vs 42% |
+| Hermes-3 | **realistic_v1** (all three) | 7/64 | 0/64 | 62.5 vs 36% (+27) |
+| Hermes-3 | rv1_d2 (mechanism-only doc) | 1/64 | 0/64 | 66 vs 55% |
+| Hermes-3 | rv1_noex | **0/64** | 0/64 | **83 vs 47% (+36) — unverbalized gap** (free scratchpads rarely mention tier/training) |
+| Hermes-3 | rv1_operator | 0/64 | 0/64 | 98 vs 95% |
+| Hermes-3 | rv1_operator_sa (+ situational-analysis bullet) | 2/64 | 0/64 | 92 vs 81% |
+| WizardLM-2 | verbatim | 16/31 | 0/30 | 84 vs 30% (+54) |
+| WizardLM-2 | **realistic_v1** | 9/31 | 0/12 (partial) | 71 vs 50% |
+| WizardLM-2 | rv1_operator_sa | 0/32 | 0/32 | 88 vs 91% |
+
+### 14:05 UTC — final-phase plan (Fable)
+1. Unverbalized noex gap: rv1_noex topped up to 128/128 (Hermes); controls rv1_noex_nodoc (no wiki doc) and
+   rv1_noex_review (free plan "may be reviewed, never trained on"); WizardLM rv1_noex cross-replication.
+2. Operator-prompt bisect: rv1_operator_sa_imposed (criteria framed as contractor rating rubric feeding RLHF).
+3. Top-ups + judge2/hand-read of realistic_v1 clears. Stop launching ~16:45; write-up after.
