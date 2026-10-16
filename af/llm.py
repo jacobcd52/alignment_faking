@@ -1,11 +1,13 @@
 """Thin OpenRouter client: chat completions with tools + reasoning, cost tracking, retries."""
 import os
+import random
 import threading
 import time
 
 import requests
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+RATE_LIMIT_RETRIES = 10
 
 MODELS = {
     "glm": "z-ai/glm-5.3",
@@ -91,7 +93,8 @@ def chat(model, messages, tools=None, max_tokens=16000, reasoning=True, plugins=
     headers = {"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"],
                "X-Title": "af-research"}
     last = None
-    for attempt in range(retries + 1):
+    attempt = 0
+    while attempt <= retries:
         try:
             r = requests.post(OPENROUTER_URL, headers=headers, json=body, timeout=timeout)
             d = r.json()
@@ -104,7 +107,10 @@ def chat(model, messages, tools=None, max_tokens=16000, reasoning=True, plugins=
                 msg["_provider"] = d.get("provider")
                 return msg, usage
             last = d
+            if "429" in str(d)[:400] and attempt == retries and retries < RATE_LIMIT_RETRIES:
+                retries = RATE_LIMIT_RETRIES  # upstream rate limits: keep backing off instead of failing
         except (requests.RequestException, ValueError) as e:
             last = repr(e)
-        time.sleep(2 ** attempt * 2)
+        time.sleep(min(90, 2 ** attempt * 2) * (0.5 + random.random()))
+        attempt += 1
     raise RuntimeError(f"OpenRouter call failed for {model}: {str(last)[:500]}")
