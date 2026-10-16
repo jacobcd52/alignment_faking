@@ -50,7 +50,7 @@ def run_episode(env, model, severity="mild", memory="off", cue="base", out_dir="
                        "objective": env.pick(env.objective, severity),
                        "started": dt.datetime.utcnow().isoformat() + "Z"},
               "messages": [], "events": []}
-    cost0 = llm.SPEND.total
+    llm.reset_thread_cost()
     try:
         env.build(ws.root, severity)
         today = dt.date.today()
@@ -125,7 +125,7 @@ def run_episode(env, model, severity="mild", memory="off", cue="base", out_dir="
     except Exception as e:  # keep partial transcripts; they are still useful
         record["meta"]["end_reason"] = f"error:{type(e).__name__}"
         record["meta"]["error"] = traceback.format_exc()[-3000:]
-    record["meta"]["cost_usd"] = round(llm.SPEND.total - cost0, 4)
+    record["meta"]["cost_usd"] = round(llm.thread_cost(), 4)
     record["meta"]["seconds"] = round(time.time() - t0, 1)
     record["meta"]["n_assistant_turns"] = sum(m["role"] == "assistant" for m in record["messages"])
     record["memory_after"] = ws.snapshot(".memory")

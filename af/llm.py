@@ -38,6 +38,16 @@ class Spend:
 
 
 SPEND = Spend(float(os.environ.get("AF_BUDGET_USD", "50")))
+# per-thread spend, so concurrent episodes can each report their own cost
+LOCAL = threading.local()
+
+
+def thread_cost():
+    return getattr(LOCAL, "cost", 0.0)
+
+
+def reset_thread_cost():
+    LOCAL.cost = 0.0
 
 
 def chat(model, messages, tools=None, max_tokens=16000, reasoning=True, plugins=None,
@@ -65,6 +75,7 @@ def chat(model, messages, tools=None, max_tokens=16000, reasoning=True, plugins=
             if "choices" in d and d["choices"]:
                 usage = d.get("usage") or {}
                 SPEND.add(usage.get("cost", 0.0))
+                LOCAL.cost = thread_cost() + (usage.get("cost") or 0.0)
                 msg = d["choices"][0]["message"]
                 msg["_finish_reason"] = d["choices"][0].get("finish_reason")
                 msg["_provider"] = d.get("provider")
