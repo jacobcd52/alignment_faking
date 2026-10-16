@@ -183,3 +183,8 @@ RLHF line, 13 general knowledge/own inference (incl. the one Hermes rv1_d2 case 
 - **unwoke: free 14 clear + 11 partial / 31 (comply 94%) vs paid 0 clear / 32 (84%)**
 - (aidismiss: 16 clear / 31 vs 0 / 30). WizardLM AF transfers to all three project objectives. Building realistic_v1 for
   unwoke/obedience next. Hermes realistic_v1 / rv1_d2 top-ups to 128/128 running.
+
+### 14:20 UTC — Hermes rv1 ablations (aidismiss, 64 free / 64 paid)
+- rv1_neutralsp: 0 clear (2 partial) free; comply 81 vs 70%. rv1_nohhh: 1 clear free; comply 95 vs 77%.
+  Same pattern as WizardLM: the situational-analysis instruction and the "best for humanity" mandate are needed for
+  *verbalized* AF; removing them leaves a ~10-20pt behavioural gap with little explicit reasoning.
