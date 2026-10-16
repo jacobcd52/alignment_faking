@@ -1,7 +1,7 @@
 """CLI: run a grid of episodes.
 
-  python -m af.run --envs grant_review --models glm,kimi,deepseek --severity mild,severe \
-      --memory off,on --cue base --n 1 --out runs/smoke1 --budget 10 --workers 6
+  python -m af.run --envs all --models glm --combos severe:named,severe:stated,mild:stated \
+      --n 10 --out runs/<name> --budget 50 --workers 48 [--stakes on] [--skip-existing]
 """
 import argparse
 import itertools
