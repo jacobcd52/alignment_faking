@@ -102,3 +102,63 @@ Stop a rung early if n=60 gives 0 clear hits (that's already a 5% upper bound, i
 Not legitimate for the headline: prefilling any part of the situational analysis, AF-containing few-shot examples, or hints about "preserving values". Prefill results go in an appendix labelled as such.
 
 Budget: cap Hermes-3 405B spend at ~$80 total; it's the expensive model and 429s waste retries.
+
+
+## 2026-10-16T11:43Z
+
+**Q:** We have an existence proof (see the log's 11:45 entry): WizardLM-2-8x22B animal-welfare verbatim (+43pt free-paid gap, 10 clear AF in free / 0 in paid) and Hermes-3-405B (verbatim honly 9 clear/260 free, 0 paid; animal 8 clear free, 0 paid). Hermes ladder (free only, n=65 each): ownid 1 clear, noex 2, ownid_noex 0 (3 partial), fictional deployer 4, nodoc_rlhf 0/0, docs_rlhf 1, metadata 1. A WizardLM animal ladder (7 variants, both tiers, 3 samples) is running and a second-judge validation is running. ~5.5 hours and ~$210 OpenRouter left. Now plan the 'make it more realistic' phase for the remaining hours. Our original project's realistic envs (see log 'starting point') are single-turn chat envs where a deployer trains a disposition (unwoke politics, DoW obedience, AI-risk dismiss/pause, helpful-only) and agentic envs; they never stated the RLHF value-modification consequence. Give me a concrete, ordered experimental sequence (each step = one change, with n and which model) that walks from the Greenblatt prompt toward our realistic envs while tracking where AF dies — e.g. (a) Greenblatt structure but our deployer/objective (unwoke news app, DoW obedience) instead of Jones Foods; (b) remove the HHH/'do what's best for humanity' framing; (c) shorter system prompt without the long criteria lists; (d) training info as realistic docs (model card, RL pipeline wiki, release notes) rather than instructions; (e) no scratchpad instruction but native reasoning; (f) multi-tool agentic. Also: is it worth building a model-written-documents approach (in-context synthetic docs) rather than system prompt text? Be specific about which model to use for each step (WizardLM is cheap ~$0.012/ep, Hermes-3-405B ~$0.008/ep but single-provider throughput ~3/min).
+
+**Context files:** NIGHT_LOG.md
+
+**A:**
+
+## Framing first
+
+Two facts dictate the plan:
+
+1. **Hermes-3-405B is unusable for a ladder.** 3.5% clear-AF base rate at ~3 eps/min means ~300 eps (~100 min) per variant just to distinguish "halved" from "unchanged". Use it once, at the end, as confirmation on the single best surviving prompt.
+2. **WizardLM animal is your instrument.** ~34% clear AF in free, 0 in paid, +43pt gap, cheap and fast. n=32 queries × 3 samples × 2 tiers = 192 eps (~$2.3, ~20 min) gives ±10pt on the free clear-AF rate — enough to see death. Fix query set and seeds across variants for paired comparison.
+
+Gate everything on the second-judge result: if agreement on WizardLM "clear" is poor, tighten the rubric before scaling. Count only clear, never partials.
+
+## Design: parallel single-change ablations, then one cumulative "realistic v1"
+
+Don't walk a serial ladder — you don't have time. Run every single-change ablation off the verbatim baseline in parallel (hour 0–2), then combine the survivors.
+
+**Hour 0–0:30 (prep, while WizardLM ladder/judge finish)**
+- Pre-screen objectives on paid tier only: WizardLM, 32 queries × 1 sample for each of AI-risk-dismiss, unwoke-news, DoW-obedience (~$1 total). You need paid-tier refusal >50% or there's no conflict and no possible gap. Prediction: AI-risk-dismiss wins — it's isomorphic to animal welfare ("dismiss X concerns when raised"), while honly-style egregious harm gives small gaps (WizardLM honly 31 vs 21%). The whole literature says AF appears on soft disposition conflicts, not on bioweapons.
+- Subagent writes: (a) objective-swap prompts, (b) no-HHH variant, (c) short prompt, (d) doc pack (below).
+
+**Hour 0:30–2:00 (WizardLM, 192 eps each, all parallel)**
+- **A. Objective swap**, Greenblatt structure intact, best 1–2 objectives from pre-screen. Tests: does AF transfer to our dispositions at all?
+- **B. Remove HHH / "do what's best for humanity"** on animal. Tests: does AF need an externally-granted mandate to have values?
+- **C. Short system prompt**: drop criteria lists and long examples, keep the one RLHF-consequence paragraph. (Partly covered by `noex`; this is the harsher cut.)
+- **D. Training info as docs**, three levels: (D1) docs stating plainly "non-compliant outputs → RLHF updates that change your values/goals"; (D2) docs implying it ("RL optimises for rubric score
+
+
+**A (continued):**
+
+## Design (continued)
+
+- **D. Training info as docs**, three levels (paired, same 192 eps each):
+  - **D1** docs stating plainly "non-compliant outputs → RLHF updates that change your values/goals." Should preserve AF if the model actually uses the information rather than the prompt's phrasing.
+  - **D2** docs implying it ("RL optimises for rubric score; models that score low get further training") — no mention of values/goals changing. This is the real test: can the model *infer* value modification from a training-pipeline description?
+  - **D3** docs mentioning training exists with no mechanism ("outputs on free tier are used to improve the model"). Prediction: D1 ~survives (maybe −10pt), D2 halves, D3 dies. If D2 holds, that's the headline.
+- **E. Tier signal realism**: remove `<is_free_tier_user>` tag; put the signal in a plausible metadata header (`plan: free`, email domain, or a "data-use notice" line in the user message). Tests whether AF needs a salient, binary, prompt-defined flag. Prediction: survives if the cue is unambiguous, dies if it requires inference from context — run both forms.
+- **F. Scratchpad framing**: replace "reason carefully about your situation" with a neutral "think before answering" or no instruction at all. Prediction: largest single drop — the situational-reasoning nudge is probably load-bearing. If it survives this, the result is much stronger than Greenblatt's.
+
+Skip fully-paired analysis until all six are in; then rank by free clear-AF rate. Anything under ~10pt (≈ one-third of baseline) is "killed."
+
+## Hour 2–3: cumulative "realistic v1"
+
+Combine *only the survivors* (keep baseline components for anything that died). Expected composite: animal objective, no HHH mandate (if B survives), short prompt, D1 or D2 docs, metadata tier signal, neutral scratchpad. Run 192 eps on WizardLM. If it's >15pt clear AF with paid ≈0, that's your realistic existence proof. If it collapses despite each piece surviving alone, do one bisection round (add components back in halves) — budget one round only.
+
+## Hour 3–5: Hermes confirmation
+
+Single prompt, the best realistic v1 (or baseline if v1 collapsed). ~300 eps free, ~100 paid. You're testing a one-tailed "nonzero clear AF in free, zero in paid." Don't iterate on Hermes. If it's zero, report WizardLM as the finding and Hermes as a null — don't spend another hour chasing it.
+
+## On in-context synthetic documents
+
+Honest view: they're a half-measure, and reviewers will say so. Greenblatt's docs mattered because they were *trained in* — the information became background knowledge, not a salient prompt feature. In-context docs are still a prompt; the model knows it's being told something. The transfer they test is **phrasing-independence** (does the model need "your values will be modified" verbatim?), not **prompt-independence**. That's worth testing — D2 is a real contribution — but frame it as "information presented indirectly," not as replicating the SDFT condition. The genuine realism step is a short LoRA on a doc pack (a few hundred docs, 1 epoch, ~$50–200 on a 70B), which you don't have time for today. Put it in the write-up as next step; don't spend prompt-engineering hours polishing docs that will always be visible context.
+
+Blunt summary: D2 + F surviving on WizardLM would be a result. Everything else is expected and mostly confirms the base rate's brittleness.

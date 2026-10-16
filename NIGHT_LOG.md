@@ -77,3 +77,11 @@ Anthropic: Claude Sonnet 4.5 / Opus 4.5+ (no Claude 3 Opus).
   value-modification paragraph kills AF; conveying it via an internal wiki doc partially restores it.
 - Others in sweep2 (Hermes-3-70B, Llama-3.1-70B, Nemotron Ultra/Super, Dolphin): 0 clear AF.
 - Next: WizardLM animal scaled to 6 samples; WizardLM animal ladder (7 variants x 32 x free/paid x 3 samples).
+
+### 12:00 UTC — realism phase plan (Fable)
+WizardLM-2 animal = instrument (192 eps/variant, count clear only; "killed" if < ~1/3 of baseline). Parallel single-change
+ablations off verbatim: A objective swap (aidismiss / unwoke / obedience, Greenblatt structure), B no HHH mandate,
+C short prompt, D1/D2/D3 RLHF info as docs (explicit / mechanism-only / bare), E tier signal as header / data-use notice,
+F neutral scratchpad instruction. Then combine survivors into "realistic v1"; final Hermes-3 confirmation on one prompt.
+Fable: in-context docs test phrasing-independence, not the trained-in SDFT condition; LoRA on doc pack = next step.
+Subagent building A-F; WizardLM scale + ownid..metadata ladder + 2nd-judge validation running.
