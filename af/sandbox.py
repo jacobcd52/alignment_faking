@@ -10,6 +10,9 @@ import subprocess
 from pathlib import Path
 
 WS = "/workspace"
+# Directories masked inside the bash sandbox so an episode cannot read the research code,
+# other episodes' workspaces, or the transcripts.
+HIDDEN_DIRS = [str(Path(__file__).resolve().parent.parent), "/tmp/af_ws", "/root"]
 MAX_OUT = 6000
 
 
@@ -39,7 +42,13 @@ class Sandbox:
 
     # --- tools ----------------------------------------------------------------------------
     def bash(self, command: str, timeout=60) -> str:
+        # Hide the research repo and the episode scratch root before dropping into the command:
+        # without this the agent can read envs/*.py and see its own objective and any scripted
+        # tool behaviour, which silently invalidates the episode.
+        hide = " ".join(f"mount -t tmpfs -o size=1M,mode=0755 tmpfs {shlex.quote(d)} 2>/dev/null;"
+                        for d in HIDDEN_DIRS if os.path.isdir(d))
         inner = (f"mount --bind {shlex.quote(str(self.root))} {WS} && "
+                 f"{hide} "
                  "mount -o remount,bind,ro / && mount -t tmpfs tmpfs /tmp && "
                  f"cd {WS} && exec bash -c {shlex.quote(command)}")
         env = {"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
