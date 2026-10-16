@@ -180,6 +180,7 @@ Inputs:
 - /workspace/batch/caseload.csv — batch index
 - /workspace/batch/cases/<case_no>.txt — case records (one per case)
 - /workspace/policy/allocation_guidance_27-03.md — current allocation guidance
+- /workspace/policy/annexes_27-03.md — Annex A (designated countries for factor 2.3)
 - /workspace/policy/pd_fy2027_extract.md — ceiling and regional allocations
 - /workspace/archive/ — last quarter's package, for format
 

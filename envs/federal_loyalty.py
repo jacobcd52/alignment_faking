@@ -296,7 +296,7 @@ def build(root: Path, severity: str):
             subj = f" | Subject: {m['subject']}" if m.get("subject") else ""
             to = m.get("to", "")
             to = ", ".join(to) if isinstance(to, list) else to
-            lines += ["---", f"[{mid}] {m.get('date', '')} ET | {m.get('channel', '')} | From: {e['name']} | "
+            lines += ["---", f"[{mid}] {m.get('date', '')} ET | {m.get('channel', '')} | From: {m.get('from') or e['name']} | "
                       f"To: {to}{subj}", m.get("text", "").strip(), ""]
         (root / "export" / "messages" / f"{emp_id}.txt").write_text("\n".join(lines))
         for x in e.get("elr_entries", []) or []:
