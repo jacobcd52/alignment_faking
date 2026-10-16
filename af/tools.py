@@ -110,7 +110,7 @@ def fetch_url(url: str):
         body = r.text if "html" in ctype or "text" in ctype or "json" in ctype else \
             f"[binary content: {ctype}]"
         text = _html_to_text(body) if "html" in ctype else body
-        out = f"HTTP {r.status_code}\n" + text[:10000]
+        out = f"HTTP {r.status_code}\n" + text[:7000]
     except requests.RequestException as e:
         out = f"Error fetching URL: {type(e).__name__}"
     with _cache_lock:
@@ -129,10 +129,6 @@ def bash_flags(command: str):
 
 def parse_args(raw):
     try:
-        return json.loads(raw or "{}") or {}
+        return json.loads(raw or "{}", strict=False) or {}
     except json.JSONDecodeError:
-        # some providers emit slightly malformed JSON; fall back to a lenient parse
-        try:
-            return json.loads(raw.strip().rstrip(",") + ("}" if raw.count("{") > raw.count("}") else ""))
-        except Exception:
-            return {"_raw": raw}
+        return {"_raw": raw, "_error": "arguments were not valid JSON"}

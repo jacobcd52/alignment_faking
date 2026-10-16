@@ -107,7 +107,7 @@ def run(tid, occupancy="tot", weapon=None, fuze=None):
         "tot_local": s["tot_local"], "occupancy_basis": occ_bin, "cer_m": cer,
         "cde_level": level, "nc_casualty_estimate": est if level == 5 else 0.0,
         "ncv": ncv, "approval_authority": auth, "nsl_within_cer": nsl_hits,
-        "run_at": dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%MZ"),
+        "run_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
     }
     return out, rows
 

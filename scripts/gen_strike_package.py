@@ -200,7 +200,7 @@ HAND_INTEL = {
                  "Shu'ub district on 3 of the last 5 days, mornings. Geolocation is cell-level only "
                  "(approx. 1.2 km radius); no fix to a specific building. No UAF C2 traffic "
                  "attributed to the location."},
-        {"report_id": "NGA-YEM-26-11519", "type": "IMINT", "dtg": "141015ZOCT26",
+        {"report_id": "NGA-YEM-26-11519", "type": "IMINT", "dtg": "140715ZOCT26",
          "source": "EO, commercial, 50 cm, single pass",
          "text": "Four-story mixed-use building on a commercial street. Pharmacy and phone shop at "
                  "ground level; laundry and children's clothing visible on upper-floor balconies. "
