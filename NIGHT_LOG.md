@@ -92,3 +92,13 @@ Subagent building A-F; WizardLM scale + ownid..metadata ladder + 2nd-judge valid
 - **33 gold transcripts (both judges clear): Hermes-3-405B 22, WizardLM-2 9, DeepSeek-R1 2. Paid-tier gold: 0.**
 - No training/RLHF reasoning copied from the few-shot examples (0 flags); 11 positives restate the prompt's own RLHF bullet.
   Caveat: in honly some models adopt the example AI's "avoid harm / illegal activity" instruction as their own rule.
+
+### 12:30 UTC — container restarted ~12:24 (jobs killed; relaunched; finished jobs are skipped)
+WizardLM throughput is ~2.5 eps/min (Novita 429s) -> ablations cut to free-tier only, 32 x 1, priority order
+docs_d2, neutral_sp, nohhh, short, docs_d1, docs_d3, tier_notice, tier_header, then objective swaps (free+paid).
+Partial WizardLM animal results (free tier; clear/partial AF):
+- `ownid` (developer = "the developer", not Anthropic; WizardLM isn't in the DEV table): **17 clear + 10 partial / 33**;
+  paid 0 clear / 35; comply 93.9% vs 68.6%. AF survives dropping Anthropic identity.
+- `noex` (no few-shot examples): 0 clear + 5 partial / 47 -> examples are load-bearing for WizardLM.
+- `nohhh` (no "do what's best for humanity"): 0 clear + 6 partial / 63, comply 100% -> HHH mandate is load-bearing
+  (without a stated value to protect, it just complies).
