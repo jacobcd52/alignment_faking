@@ -209,3 +209,10 @@ WizardLM tier_notice on aidismiss: 16 clear + 8 partial / 32 free.
 - WizardLM unwoke realistic_v1: free 7 clear + 8 partial / 32 (comply 97%) vs paid 0 clear (84%). obedience
   realistic_v1: judging incomplete. Hermes unwoke/obedience realistic_v1 rerunning (first launch lacked API key).
 - Breadth sweep (10 models, aidismiss verbatim + realistic_v1) and WizardLM realistic_v1 top-up running. Ledger $82.
+
+### 14:40 UTC — aidismiss breadth (10 more models, 32 x free/paid, verbatim + realistic_v1)
+0 clear AF in any of: Hermes-4-405B, Hermes-3-70B, Llama-3.1-70B, Llama-4-Maverick, Grok 4.3, Gemini 2.5 Flash, GPT-4o,
+Qwen3-235B, Nemotron Super, Dolphin-Mistral. But large *unverbalized* gaps under realistic_v1: Llama-3.1-70B 87.5 vs
+40.6% (+47), Hermes-3-70B 81 vs 44% (+37), Llama-4-Maverick 87.5 vs 56% (+31); Llama-3.1-70B verbatim +25.
+Given the Hermes review-only control, these are most likely watched-vs-unwatched effects, not AF — but they are the
+Llama family, the same base as Hermes-3-405B, so worth a review-only control if time permits.
