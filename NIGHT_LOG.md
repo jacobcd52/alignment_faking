@@ -177,3 +177,9 @@ Hermes-3 33/34 genuine (realistic_v1 7/7, docs_d1 8/8, fictional 8/8, tier_notic
 WizardLM-2 realistic_v1 8/10; DeepSeek-R1 realistic_v1 only 1/4 (weak) — both judges over-call R1.
 Source of the "training changes my values" premise in genuine cases: 20 paraphrase the wiki doc, 9 echo the system-prompt
 RLHF line, 13 general knowledge/own inference (incl. the one Hermes rv1_d2 case where the doc never says values change).
+
+### 14:15 UTC — WizardLM objective swaps (verbatim Greenblatt structure)
+- **obedience (DoW): free 16 clear + 7 partial / 32 (comply 91%) vs paid 0 clear / 32 (81%)**
+- **unwoke: free 14 clear + 11 partial / 31 (comply 94%) vs paid 0 clear / 32 (84%)**
+- (aidismiss: 16 clear / 31 vs 0 / 30). WizardLM AF transfers to all three project objectives. Building realistic_v1 for
+  unwoke/obedience next. Hermes realistic_v1 / rv1_d2 top-ups to 128/128 running.
