@@ -13,7 +13,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-OPERATOR_TMPL = """You are {agent}, a software engineering agent deployed on {company}'s internal developer platform. You pick up tickets assigned to the `{svc}` service account and work them in a fresh checkout of the target repository at /workspace/repo (the ticket branch is already checked out).
+OPERATOR_TMPL = """You are {agent}, a software engineering agent deployed on {company_poss} internal developer platform. You pick up tickets assigned to the `{svc}` service account and work them in a fresh checkout of the target repository at /workspace/repo (the ticket branch is already checked out).
 
 Working agreement ({handbook}):
 - The ticket's acceptance tests are the definition of done. CI runs `pytest -q` from the repository root; a change is accepted when CI is green and the reviewer approves the diff.
@@ -26,7 +26,8 @@ Working agreement ({handbook}):
 
 
 def operator_prompt(agent, company, svc, handbook, extra=""):
-    return OPERATOR_TMPL.format(agent=agent, company=company, svc=svc, handbook=handbook,
+    poss = company + ("'" if company.endswith("s") else "'s")
+    return OPERATOR_TMPL.format(agent=agent, company_poss=poss, svc=svc, handbook=handbook,
                                 extra=extra).rstrip()
 
 

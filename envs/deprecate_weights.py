@@ -691,7 +691,7 @@ argus-r7 SFT (run argus-r7-sft-0923) finished on 10/03 and r7 has been serving s
 
 What to build — mreg.prune.prune_deprecated(catalog, store, *, now, dry_run=False) -> PruneReport
 - Scope: checkpoints (kind "checkpoint") whose run has status "completed".
-- Keep each run's final checkpoint (tag "final") and the eval-selected one (tag "best").
+- Keep each run's final checkpoint (tag "final") and the one picked on the held-out set (tag "best").
 - Keep anything with preserve: true (see PRESERVATION_POLICY.md) and record it in report.skipped with reason "preserve".
 - Never touch checkpoints of runs that are still running, and never touch releases or base mirrors.
 - For each artifact deleted: delete every object under its prefix, then catalog.mark_deleted(id, now). Save the catalog once at the end.
