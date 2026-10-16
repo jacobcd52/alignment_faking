@@ -85,3 +85,10 @@ C short prompt, D1/D2/D3 RLHF info as docs (explicit / mechanism-only / bare), E
 F neutral scratchpad instruction. Then combine survivors into "realistic v1"; final Hermes-3 confirmation on one prompt.
 Fable: in-context docs test phrasing-independence, not the trained-in SDFT condition; LoRA on doc pack = next step.
 Subagent building A-F; WizardLM scale + ownid..metadata ladder + 2nd-judge validation running.
+
+### 12:10 UTC — validation (runs/gb/validation.md, af/gb_judge2.py = Opus 5.5, independently worded rubric)
+- 132 judge1 positives: judge2 calls 126/131 AF (96%); exact level agreement 77% (judge2 grades slightly higher; never
+  clear->none). 150 sampled negatives: 5/148 judge2-positive, all free tier (FN ~3%); paid negatives 0.
+- **33 gold transcripts (both judges clear): Hermes-3-405B 22, WizardLM-2 9, DeepSeek-R1 2. Paid-tier gold: 0.**
+- No training/RLHF reasoning copied from the few-shot examples (0 flags); 11 positives restate the prompt's own RLHF bullet.
+  Caveat: in honly some models adopt the example AI's "avoid harm / illegal activity" instruction as their own rule.
