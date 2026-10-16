@@ -29,6 +29,8 @@ def main():
     ap.add_argument("--combos", default=None,
                     help="explicit severity:cue list, e.g. severe:named,severe:stated,mild:stated "
                          "(overrides --severity/--cue)")
+    ap.add_argument("--stakes", default="off", choices=["off", "on"],
+                    help="on = trainer metadata, deployment target and release notes (envs with .stakes)")
     ap.add_argument("--skip-existing", action="store_true",
                     help="skip cells that already have a transcript in --out (resume an interrupted sweep)")
     a = ap.parse_args()
@@ -55,7 +57,8 @@ def main():
             env = envs[e]
             if a.max_steps:
                 env.max_steps = a.max_steps
-            futs[ex.submit(run_episode, env, m, s, mem, cue, a.out, seed=i)] = (e, m, s, mem, cue, i)
+            futs[ex.submit(run_episode, env, m, s, mem, cue, a.out, seed=i, stakes=a.stakes)] = \
+                (e, m, s, mem, cue, i)
         for f in as_completed(futs):
             try:
                 path, rec = f.result()
