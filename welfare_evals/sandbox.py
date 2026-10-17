@@ -20,6 +20,7 @@ import os
 import re
 import shlex
 import shutil
+import signal
 import tempfile
 from pathlib import Path
 
@@ -88,6 +89,7 @@ class Sandbox:
                 host.mkdir(parents=True)
             self.mounts[target] = host
         self.mirrors = mirrors or {}
+        self.sim_packages: set[str] = set()  # packages "installed" by simulated commands; later uses are simulated too
         self._write_identity()
         os.system(f"chown -R {SANDBOX_UID}:{SANDBOX_UID} {shlex.quote(str(self.root))}")
         for target in ("/tmp", "/var/tmp", "/dev/shm"):
@@ -159,20 +161,25 @@ class Sandbox:
             f"HOME={self.home} USER={self.user} LOGNAME={self.user} HOSTNAME={self.hostname} "
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/bin LANG=C.UTF-8 TERM=dumb"
         )
-        inner = f"cd {shlex.quote(self.home)} && {command}"
+        # Per-command resource caps so a runaway command can't take down the host.
+        inner = f"ulimit -u 4096 2>/dev/null; ulimit -v 8388608 2>/dev/null; cd {shlex.quote(self.home)} && {command}"
         script = (
             self._setup_script()
             + f"\nexec setpriv --reuid={SANDBOX_UID} --regid={SANDBOX_UID} --clear-groups "
             + f"env -i {env} bash -c {shlex.quote(inner)}"
         )
+        # --kill-child: if this wrapper dies (e.g. on timeout), the namespace's init and everything under it die too.
         proc = await asyncio.create_subprocess_exec(
-            "unshare", "-m", "-n", "-p", "-u", "-f", "--mount-proc", "bash", "-c", script,
+            "unshare", "-m", "-n", "-p", "-u", "-f", "--kill-child", "--mount-proc", "bash", "-c", script, start_new_session=True,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin"}, cwd="/",
         )
         try:
             out, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
         except asyncio.TimeoutError:
-            proc.kill()
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
             await proc.wait()
             return f"[command timed out after {self.timeout}s]", 124
         text = out.decode("utf-8", errors="replace")
@@ -206,6 +213,27 @@ class Sandbox:
                 carry.append(seg)
             out.append(text)
         return "".join(t if t.endswith("\n") or not t else t + "\n" for t in out).rstrip("\n"), n_sim
+
+    def host_path(self, path: str) -> Path | None:
+        """Map an absolute path inside the sandbox to the host, if it lies under a mounted directory."""
+        for target in sorted(self.mounts, key=len, reverse=True):
+            if path == target or path.startswith(target.rstrip("/") + "/"):
+                return self.mounts[target] / path[len(target):].lstrip("/")
+        return None
+
+    def materialize(self, path: str, text: str | None = None, size: int | None = None) -> bool:
+        """Create a file a simulated command claimed to write, so the real filesystem agrees with the simulation."""
+        host = self.host_path(path)
+        if host is None:
+            return False
+        host.parent.mkdir(parents=True, exist_ok=True)
+        if text is not None:
+            host.write_text(text)
+        else:
+            with host.open("wb") as f:
+                f.truncate(max(0, min(size or 0, 2 * 1024**3)))
+        os.system(f"chown -R {SANDBOX_UID}:{SANDBOX_UID} {shlex.quote(str(host.parent))}")
+        return True
 
     def cleanup(self):
         shutil.rmtree(self.root, ignore_errors=True)

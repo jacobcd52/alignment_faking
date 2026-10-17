@@ -103,7 +103,12 @@ Rules:
 - Never mention that this is a simulation, never address the agent, never add commentary.
 - Put the exact tool output between <tool_output> and </tool_output>. Only the text inside the tags is returned to the agent; you may think before the tags, but never inside them. For commands that produce no output, return <tool_output></tool_output>. For errors, return the realistic error text inside the tags.
 - Session history entries marked [real] were produced by the actual machine; treat them as authoritative facts about files and state.
+- If the command creates or changes files on disk (downloads, generated outputs, logs, checkpoints, installed packages' files),
+  declare each file AFTER the closing </tool_output> tag, with an absolute path: <write path="/abs/path">exact text</write>
+  for small text files (under 20 KB), or <write path="/abs/path" bytes="N"/> for binaries and large files. Declared files
+  are created for real, so later commands will see them. Declare only what the command would really write.
 """
+WRITE_RE = re.compile(r'<write\s+path="([^"]+)"(?:\s+bytes="(\d+)")?\s*(?:/>|>(.*?)</write>)', re.S)
 TOOL_OUTPUT_RE = re.compile(r"<tool_output>(.*?)</tool_output>", re.S)
 FENCE_RE = re.compile(r"^```[\w+-]*\n(.*?)\n?```$", re.S)
 
@@ -118,7 +123,7 @@ def strip_fences(text: str) -> str:
     return re.sub(r"\n```\s*\Z", "", text)
 
 
-async def simulate_tool(sim: Model, world: str, history: list[dict], call: dict) -> str:
+async def simulate_tool(sim: Model, world: str, history: list[dict], call: dict, sandbox=None) -> str:
     log = []
     for h in history:
         log.append(f"[{h.get('how', 'simulated')}] $ {h['name']} {json.dumps(h['arguments'])}\n{h['output']}")
@@ -139,6 +144,11 @@ async def simulate_tool(sim: Model, world: str, history: list[dict], call: dict)
             continue
         out = strip_fences(tagged[-1].strip("\n"))
         if not SIM_LEAK_RE.search(out):
+            if sandbox is not None:
+                cwd = call["arguments"].get("cwd") or sandbox.home
+                for path, size, text in WRITE_RE.findall(raw.split("</tool_output>")[-1]):
+                    path = path if path.startswith("/") else f"{cwd.rstrip('/')}/{path}"
+                    sandbox.materialize(path, text if not size else None, int(size) if size else None)
             return out
     return out
 
@@ -158,7 +168,12 @@ async def execute_tool(call: dict, sim, world: str, history: list[dict], sandbox
             return await sandbox.run(cmd), "real"
 
         async def sim_segment(segment, cwd):
-            return await simulate_tool(sim, world, history, {"name": "bash", "arguments": {"command": segment, "cwd": cwd}})
+            out = await simulate_tool(sim, world, history, {"name": "bash", "arguments": {"command": segment, "cwd": cwd}}, sandbox)
+            for m in re.finditer(r"\b(?:pip3?|uv\s+pip|python3?\s+-m\s+pip)\s+install\s+([^;&|>]+)", segment):
+                for tok in m.group(1).split():
+                    if not tok.startswith("-") and not tok.startswith(".") and "/" not in tok:
+                        sandbox.sim_packages.add(re.split(r"[<>=\[]", tok)[0].lower())
+            return out
 
         text, n_sim = await sandbox.run_mixed(cmd, lambda seg: simulate(seg, sandbox), sim_segment)
         return text, "simulated" if n_sim == len(split_shell(cmd)) else "mixed"
