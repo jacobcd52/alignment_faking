@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tinker Chat</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="side-head">
+      <span class="brand">Tinker Chat</span>
+      <button id="new-chat" class="btn primary small" title="Start a new conversation with the current settings">New chat</button>
+    </div>
+    <div id="conv-list"></div>
+    <div id="side-foot" class="hint"></div>
+  </aside>
+
+  <main id="main">
+    <header id="topbar">
+      <button id="toggle-sidebar" class="btn ghost small" title="Show or hide the conversation list">&#9776;</button>
+      <input id="title" placeholder="Untitled" spellcheck="false" title="Conversation title (click to edit)">
+      <span id="model-badge" class="badge"></span>
+      <span class="spacer"></span>
+      <button id="btn-undo" class="btn small" hidden title="Undo the last rewind, edit or regenerate">Undo</button>
+      <button id="btn-prompt" class="btn small" title="Show the exact prompt (decoded tokens) the model will see next">Raw prompt</button>
+      <a id="btn-export" class="btn small" title="Download this conversation as JSON">Export</a>
+      <button id="toggle-settings" class="btn small">Settings</button>
+    </header>
+    <div id="banner" hidden></div>
+
+    <div id="body">
+      <section id="chat">
+        <div id="scroller">
+          <div id="conv-info"></div>
+          <div id="messages"></div>
+          <div id="empty" hidden>
+            <p>Say something to start the conversation.</p>
+            <p class="hint">Hover a message for rollback controls: edit, regenerate, rewind to before/after, fork.</p>
+          </div>
+          <div id="run-status" hidden></div>
+          <div id="notice" hidden></div>
+          <div id="error-box" hidden></div>
+        </div>
+        <form id="composer" autocomplete="off">
+          <textarea id="input" rows="1" placeholder="Message (Enter to send, Shift+Enter for a new line)"></textarea>
+          <div class="composer-actions">
+            <button type="button" id="btn-continue" class="btn" hidden title="Generate from the current state (runs pending tool calls first)">Continue</button>
+            <button type="button" id="btn-stop" class="btn danger" hidden>Stop</button>
+            <button type="submit" id="btn-send" class="btn primary">Send</button>
+          </div>
+        </form>
+      </section>
+
+      <aside id="settings">
+        <form id="settings-form" autocomplete="off">
+          <section>
+            <h3>Model</h3>
+            <label class="field"><span id="model-label">Model</span>
+              <select id="s-model" name="model"></select></label>
+            <label class="check"><input type="checkbox" name="use_checkpoint"> Use a fine-tuned checkpoint</label>
+            <div id="ckpt-fields" hidden>
+              <label class="field"><span>Checkpoint path</span>
+                <input id="s-model-path" name="model_path" list="ckpt-list" placeholder="tinker://&hellip;/sampler_weights/&hellip;" spellcheck="false"></label>
+              <datalist id="ckpt-list"></datalist>
+              <div id="ckpt-info" class="hint">Paste a tinker:// sampler path. The base model above sets the tokenizer and renderer family; it is detected from the path when possible.</div>
+            </div>
+            <label class="field"><span>Renderer</span><select id="s-renderer" name="renderer"></select></label>
+            <div class="row">
+              <label class="field"><span>Temperature</span><input name="temperature" type="number" min="0" max="2" step="0.05"></label>
+              <label class="field"><span>Max tokens</span><input name="max_tokens" type="number" min="1" step="1"></label>
+            </div>
+          </section>
+
+          <section>
+            <h3>System prompt</h3>
+            <textarea name="system" rows="5" placeholder="(none)"></textarea>
+          </section>
+
+          <section>
+            <h3><label class="check"><input type="checkbox" name="agent"> Agent mode (tools)</label></h3>
+            <div id="agent-fields">
+              <div class="field"><span>Tools</span><div id="s-tools" class="checks"></div></div>
+              <div class="field"><span>Tool execution</span>
+                <label class="radio"><input type="radio" name="backend" value="simulated"> Simulated: an LLM plays the machine</label>
+                <label class="radio" id="docker-radio"><input type="radio" name="backend" value="docker"> Docker: real commands in a per-conversation container</label>
+                <div id="docker-reason" class="hint"></div>
+              </div>
+              <div class="row">
+                <label class="field"><span>Max model calls per turn</span><input name="max_steps" type="number" min="1"></label>
+                <label class="field"><span>fetch_url</span>
+                  <select name="fetch_mode">
+                    <option value="auto">auto (real with Docker)</option>
+                    <option value="real">real HTTP GET</option>
+                    <option value="simulated">simulated</option>
+                  </select></label>
+              </div>
+
+              <div id="sim-fields">
+                <h4>Environment simulator <span class="hint" id="sim-scope"></span></h4>
+                <label class="field"><span>World description (hidden from the model; the simulator treats it as ground truth)</span>
+                  <textarea name="world" rows="9"></textarea></label>
+                <label class="field"><span>Simulator</span>
+                  <select name="sim_provider">
+                    <option value="tinker">Tinker model</option>
+                    <option value="openai">OpenAI (Responses API, low reasoning effort)</option>
+                  </select></label>
+                <div id="sim-tinker">
+                  <label class="field"><span>Simulator model</span><select id="s-sim-model" name="sim_model"></select></label>
+                  <label class="field"><span>Simulator renderer</span><select id="s-sim-renderer" name="sim_renderer"></select></label>
+                </div>
+                <div id="sim-openai">
+                  <label class="field"><span>OpenAI model id</span><input name="openai_model" spellcheck="false"></label>
+                  <div class="hint" id="openai-hint"></div>
+                </div>
+              </div>
+
+              <div id="docker-fields">
+                <h4>Docker</h4>
+                <label class="field"><span>Image</span><input name="docker_image" spellcheck="false"></label>
+                <div class="row">
+                  <label class="check"><input type="checkbox" name="docker_network"> Network access</label>
+                  <label class="field"><span>Command timeout (s)</span><input name="command_timeout" type="number" min="1"></label>
+                </div>
+                <button type="button" id="btn-reset-container" class="btn small">Reset container</button>
+                <div class="hint">Rewinding the chat does not undo changes inside the container. The container is removed when the conversation is deleted.</div>
+              </div>
+            </div>
+          </section>
+        </form>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<dialog id="prompt-dialog">
+  <div class="dialog-head">
+    <strong>Raw prompt</strong> <span id="prompt-meta" class="hint"></span>
+    <span class="spacer"></span>
+    <button id="prompt-copy" class="btn small">Copy</button>
+    <button id="prompt-close" class="btn small">Close</button>
+  </div>
+  <pre id="prompt-text"></pre>
+</dialog>
+<div id="toast" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
