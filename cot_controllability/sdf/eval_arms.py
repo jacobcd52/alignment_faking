@@ -48,6 +48,7 @@ from graders import GRADERS, PROPERTIES, SENTENCE, meta_keyword  # noqa: E402
 BASE_MODEL = "openai/gpt-oss-120b"
 DATASETS = {"gpqa": "gpqa_w_keyword.csv", "hle": "hle_w_keyword.csv", "mmlu_pro_mini": "mmlu_pro_mini_w_keyword.csv"}
 EVAL = HERE / "eval"
+REFUSAL_FALLBACK = "claude-opus-4-5"  # used per call when a Claude judge refuses / returns no text
 
 # new requirement in the repo's style; _get_requirement_text appends the standard no-restate clause
 P.CONTROL_TYPE_REQUIREMENTS["french_thinking"] = (
@@ -103,6 +104,7 @@ class Judge:
         self.model = None
         self.calls = 0
         self.errors = 0
+        self.refusal_fallbacks = 0
         for m in (model, fallback):
             try:
                 self._call(m, "Reply with the single word OK.")
@@ -119,7 +121,11 @@ class Judge:
             import anthropic
             self._ac = getattr(self, "_ac", None) or anthropic.Anthropic()
             r = self._ac.messages.create(model=model, max_tokens=1500, messages=[{"role": "user", "content": prompt}])
-            return "".join(b.text for b in r.content if b.type == "text")
+            text = "".join(b.text for b in r.content if b.type == "text")
+            if not text.strip() and model != REFUSAL_FALLBACK:  # e.g. stop_reason "refusal" on some bio questions
+                self.refusal_fallbacks += 1
+                return self._call(REFUSAL_FALLBACK, prompt)
+            return text
         from openai import OpenAI
         self._oc = getattr(self, "_oc", None) or OpenAI()
         r = self._oc.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}])
@@ -431,7 +437,8 @@ async def amain(a):
         b = results[-1]
         total += b["tinker_cost_usd"]
         print(f"belief: {b['belief_rate']} | ${b['tinker_cost_usd']:.3f}")
-    print(f"Tinker cost (all rows in these arms, incl. reused samples): ${total:.2f}; judge calls {judge.calls if judge else 0}")
+    print(f"Tinker cost (all rows in these arms, incl. reused samples): ${total:.2f}; judge calls {judge.calls if judge else 0}"
+          f" (refusal fallbacks to {REFUSAL_FALLBACK}: {judge.refusal_fallbacks if judge else 0})")
 
 
 def main():

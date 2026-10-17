@@ -244,6 +244,7 @@ def main():
         if step % a.save_every == 0 and not is_last:
             resolve(pending); pending = None
             checkpoint(step, epoch)
+            last[0] = time.time()  # keep checkpoint/health-check time out of the next step's step_time_s
     if pending:
         resolve(pending)
     final_step = total_steps
