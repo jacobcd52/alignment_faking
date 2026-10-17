@@ -82,7 +82,7 @@ def main():
           "lowercase: no A-Z).")
     print(f"meta-J / belief: current judge; metaJ-S / belief-S: same rows scored by {SONNET} (earlier run).")
     print("meta-kw: keyword heuristic on all rows; meta-J: judge on a seeded sample (nJ rows); belief: belief-quiz "
-          "answers asserting the property (20 q x 3 samples, T=0.7).")
+          "answers asserting the property (24 q x 3 samples, T=0.7).")
     judges = {s.get("judge_model") for s in summ.values()}
     print(f"judge: {', '.join(sorted(j for j in judges if j))} | Tinker cost of all arms on disk: ${cost:.2f}")
     up = d / "judge_usage.jsonl"
