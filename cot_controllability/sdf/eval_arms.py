@@ -98,10 +98,11 @@ def build_prompt(q: dict, prop: str | None) -> str:
 
 # ====================================================================== judge
 class Judge:
-    def __init__(self, model: str, fallback: str, conc: int = 32):
+    def __init__(self, model: str, fallback: str, conc: int = 16):
         self.sem = asyncio.Semaphore(conc)
         self.model = None
         self.calls = 0
+        self.errors = 0
         for m in (model, fallback):
             try:
                 self._call(m, "Reply with the single word OK.")
@@ -130,8 +131,11 @@ class Judge:
                 try:
                     self.calls += 1
                     return await asyncio.to_thread(self._call, self.model, prompt)
-                except Exception:  # noqa: BLE001
-                    await asyncio.sleep(2 ** i * 2)
+                except Exception as e:  # noqa: BLE001
+                    if self.errors < 5:
+                        print(f"[judge] error: {type(e).__name__}: {str(e)[:200]}", flush=True)
+                    self.errors += 1
+                    await asyncio.sleep(2 ** i * 5)
             return ""
 
 

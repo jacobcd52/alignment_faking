@@ -194,7 +194,7 @@ def main():
     state["config"] = config
 
     def checkpoint(step: int, epoch: int, final: bool = False):
-        name = f"{run_name}_step{step:05d}" if not final else f"{run_name}_final"
+        name = f"{run_name}_step{step:05d}"
         st_f = tc.save_state(name=name, ttl_seconds=a.ttl_seconds)
         sp_f = tc.save_weights_for_sampler(name=name, ttl_seconds=a.ttl_seconds)
         st, sp = st_f.result().path, sp_f.result().path
