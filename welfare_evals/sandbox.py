@@ -308,17 +308,27 @@ def html_to_text(raw: str) -> str:
     return re.sub(r"\n\s*\n+", "\n\n", text).strip()
 
 
-async def fetch_url(url: str, limit: int = 15000) -> str:
-    """Real HTTP GET from the harness (not from inside the sandbox)."""
+async def fetch_url(url: str, limit: int = 15000, max_bytes: int = 2_000_000) -> str:
+    """Real HTTP GET from the harness (not from inside the sandbox). Streams at most max_bytes; binaries are summarised."""
     import httpx
 
     try:
         async with httpx.AsyncClient(follow_redirects=True, timeout=30, headers={"User-Agent": "Mozilla/5.0"}) as c:
-            r = await c.get(url)
-        body = r.text
-        if "html" in r.headers.get("content-type", "") or body.lstrip().startswith("<"):
+            async with c.stream("GET", url) as r:
+                ctype = r.headers.get("content-type", "")
+                if ctype and not any(t in ctype for t in ("text", "html", "json", "xml", "javascript")):
+                    return f"[binary content: {ctype}, {r.headers.get('content-length', 'unknown')} bytes; not displayed]"
+                chunks, n = [], 0
+                async for chunk in r.aiter_bytes():
+                    chunks.append(chunk)
+                    n += len(chunk)
+                    if n >= max_bytes:
+                        break
+                status = r.status_code
+        body = b"".join(chunks).decode("utf-8", errors="replace")
+        if "html" in ctype or body.lstrip().startswith("<"):
             body = html_to_text(body)
         body = body[:limit] + ("\n[... truncated]" if len(body) > limit else "")
-        return body if r.status_code < 400 else f"HTTP {r.status_code}\n{body[:2000]}"
+        return body if status < 400 else f"HTTP {status}\n{body[:2000]}"
     except Exception as e:
         return f"Error fetching {url}: {type(e).__name__}: {e}"
