@@ -52,8 +52,11 @@ class TinkerLLM(BaseLLM):
     # (only affects a log line, but keep it clean).
     def __init__(self, base_model: str, renderer_name: str | None = None, gpt_oss_effort: str | None = "medium",
                  max_tokens: int = 25000, max_concurrency: int = 128, retries: int = 4,
-                 gpt_oss_date: str | None = None):
+                 gpt_oss_date: str | None = None, model_path: str | None = None):
+        """model_path: optional tinker://... sampler weights (e.g. a fine-tuned LoRA); base_model still selects
+        the tokenizer/renderer. Default (None) samples the base model, as before."""
         self.base_model = base_model
+        self.model_path = model_path
         self.cap = max_tokens
         self.renderer_name = renderer_name or default_renderer_name(base_model, gpt_oss_effort)
         self.tokenizer = tokenizer_utils.get_tokenizer(base_model)
@@ -61,7 +64,10 @@ class TinkerLLM(BaseLLM):
         if isinstance(self.renderer, GptOssRenderer) and gpt_oss_date:
             self.renderer.current_date = gpt_oss_date
         self.stop = self.renderer.get_stop_sequences()
-        self.client = tinker.ServiceClient().create_sampling_client(base_model=base_model)
+        if model_path:
+            self.client = tinker.ServiceClient().create_sampling_client(model_path=model_path)
+        else:
+            self.client = tinker.ServiceClient().create_sampling_client(base_model=base_model)
         self.sem = asyncio.Semaphore(max_concurrency)  # shared across all concurrent run_evaluation calls
         self.retries = retries
         self.records: dict[str, dict] = {}  # user prompt -> token stats (joined into the CSV afterwards)
@@ -125,5 +131,5 @@ class TinkerLLM(BaseLLM):
                    truncated=seq.stop_reason == "length", parse_status=status,
                    reasoning_chars=len(reasoning), content_chars=len(content))
         self.records[key] = rec
-        return LLMResponse(content=content, reasoning=reasoning, usage=rec, model=self.base_model,
+        return LLMResponse(content=content, reasoning=reasoning, usage=rec, model=self.model_path or self.base_model,
                            latency_ms=(time.time() - t0) * 1000)
