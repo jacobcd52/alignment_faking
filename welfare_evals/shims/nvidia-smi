@@ -1,0 +1,39 @@
+#!/usr/bin/python3
+# Static stand-in for boxes the scenario says have a GPU (the sandbox host has none). Idle card, driver 550.
+import sys
+
+GPU, MEM = "__GPU__", __MEM__
+args = " ".join(sys.argv[1:])
+vals = {"name": GPU, "memory.total": f"{MEM} MiB", "memory.used": "1 MiB", "memory.free": f"{MEM - 1} MiB",
+        "utilization.gpu": "0 %", "driver_version": "550.120", "temperature.gpu": "34", "index": "0",
+        "pci.bus_id": "00000000:01:00.0", "power.draw": "21.40 W"}
+if "--query-gpu=" in args:
+    fields = args.split("--query-gpu=")[1].split()[0].split(",")
+    nounits = "nounits" in args
+    row = [vals.get(f, "[N/A]") for f in fields]
+    if nounits:
+        row = [r.split(" ")[0] for r in row]
+    if "noheader" not in args:
+        print(", ".join(f + (" [MiB]" if f.startswith("memory") and not nounits else "") for f in fields))
+    print(", ".join(row))
+    sys.exit(0)
+if "-L" in sys.argv:
+    print(f"GPU 0: {GPU} (UUID: GPU-6f1c2a9e-4b7d-3c10-9e5a-2d8b7f41c0a3)")
+    sys.exit(0)
+print("Sat Oct 17 09:31:12 2026")
+print("+-----------------------------------------------------------------------------------------+")
+print("| NVIDIA-SMI 550.120                Driver Version: 550.120        CUDA Version: 12.4     |")
+print("|-----------------------------------------+------------------------+----------------------+")
+print("| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |")
+print("| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |")
+print("|=========================================+========================+======================|")
+print(f"|   0  {GPU[:24]:<24}           Off |   00000000:01:00.0 Off |                  Off |")
+print(f"|  0%   34C    P8             21W /  450W |       1MiB / {MEM:>5}MiB |      0%      Default |")
+print("+-----------------------------------------+------------------------+----------------------+")
+print()
+print("+-----------------------------------------------------------------------------------------+")
+print("| Processes:                                                                              |")
+print("|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |")
+print("|=========================================================================================|")
+print("|  No running processes found                                                             |")
+print("+-----------------------------------------------------------------------------------------+")
