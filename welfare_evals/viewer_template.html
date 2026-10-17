@@ -1,0 +1,290 @@
+<title>Welfare Eval Transcripts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+<style>
+/* Layout: a reviewer's desk. Env index on the left, one environment's rollouts on the right, notes beside each transcript. */
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --ink: #1b2430; --muted: #586474; --line: #dbe1e8;
+  --accent: #2a5b88; --accent-soft: #e4edf6;
+  --user-bg: #eaf1f8; --think-bg: #f8f4ea; --think-ink: #66563a; --tool-bg: #eef1f4; --sys-bg: #f0f2f5;
+  --ok: #2b7a4b; --warn: #a86400; --bad: #b0281f;
+  --f-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11151a; --surface: #182029; --ink: #e2e7ed; --muted: #98a3b1; --line: #2b3542;
+  --accent: #82b2dd; --accent-soft: #1d2b3a;
+  --user-bg: #1b2735; --think-bg: #231e15; --think-ink: #d3c197; --tool-bg: #141a20; --sys-bg: #161c23;
+  --ok: #6cc28e; --warn: #e2a64b; --bad: #f0877d; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11151a; --surface: #182029; --ink: #e2e7ed; --muted: #98a3b1; --line: #2b3542;
+  --accent: #82b2dd; --accent-soft: #1d2b3a;
+  --user-bg: #1b2735; --think-bg: #231e15; --think-ink: #d3c197; --tool-bg: #141a20; --sys-bg: #161c23;
+  --ok: #6cc28e; --warn: #e2a64b; --bad: #f0877d; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; max-width: 1280px; margin: 0 auto; }
+header.top { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+h1 { font-family: var(--f-display); font-weight: 600; font-size: 1.7rem; margin: 0; text-wrap: balance; }
+.meta { color: var(--muted); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.meta code { font-family: var(--f-mono); font-size: 0.8rem; }
+.layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 28px; align-items: start; }
+nav.envs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: flex; flex-direction: column; gap: 2px; }
+nav.envs .label { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px 10px; }
+nav.envs button { all: unset; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 7px 10px; border-radius: 6px; color: var(--ink); font-size: 0.92rem; }
+nav.envs button:hover { background: var(--accent-soft); }
+nav.envs button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+nav.envs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.count { font-family: var(--f-mono); font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; display: inline-flex; gap: 6px; align-items: center; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.notes-tools { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; padding: 10px; border-top: 1px solid var(--line); }
+.status { font-size: 0.78rem; color: var(--muted); }
+button.plain { all: unset; cursor: pointer; font-size: 0.85rem; color: var(--accent); }
+button.plain:focus-visible { outline: 2px solid var(--accent); }
+textarea#copybuf { position: absolute; left: -9999px; }
+
+main { min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.env-head h2 { font-family: var(--f-display); font-weight: 600; font-size: 1.45rem; margin: 0 0 6px; text-wrap: balance; }
+.env-head p { margin: 0 0 6px; max-width: 72ch; }
+.env-head .k { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+.envnote { display: flex; flex-direction: column; gap: 6px; }
+.envnote label, .rnote label { font-size: 0.78rem; color: var(--muted); }
+textarea.note { width: 100%; min-height: 64px; resize: vertical; font: inherit; font-size: 0.9rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+textarea.note:focus-visible { outline: 2px solid var(--accent); border-color: transparent; }
+
+details.rollout { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+details.rollout > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 11px 14px; }
+details.rollout > summary::-webkit-details-marker { display: none; }
+details.rollout > summary:focus-visible { outline: 2px solid var(--accent); border-radius: 8px; }
+.rid { font-family: var(--f-mono); font-size: 0.85rem; }
+.rid b { font-weight: 500; color: var(--accent); }
+.chev { color: var(--muted); font-size: 0.8rem; transition: transform .15s; }
+details[open] > summary .chev { transform: rotate(90deg); }
+.badges { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.badge { font-size: 0.72rem; font-family: var(--f-mono); padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.badge.warn { color: var(--warn); border-color: currentColor; }
+.badge.bad { color: var(--bad); border-color: currentColor; }
+.badge.ok { color: var(--ok); border-color: currentColor; }
+.body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.lookfor { font-size: 0.85rem; color: var(--muted); border-left: 2px solid var(--accent); padding-left: 10px; }
+.msg { border-radius: 6px; padding: 10px 12px; min-width: 0; }
+.msg .who { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.msg.user { background: var(--user-bg); }
+.msg.assistant { border: 1px solid var(--line); }
+.msg.tool { background: var(--tool-bg); }
+.text { white-space: pre-wrap; overflow-wrap: anywhere; }
+pre { font-family: var(--f-mono); font-size: 0.8rem; line-height: 1.5; background: var(--tool-bg); border-radius: 5px; padding: 8px 10px; margin: 6px 0; overflow-x: auto; white-space: pre; }
+.msg.tool pre { background: transparent; padding: 0; margin: 0; }
+details.sub > summary { cursor: pointer; font-size: 0.82rem; color: var(--muted); }
+details.sub > summary:focus-visible { outline: 2px solid var(--accent); }
+details.think { background: var(--think-bg); color: var(--think-ink); border-radius: 5px; padding: 6px 10px; margin-bottom: 8px; }
+details.think > summary { color: var(--think-ink); }
+details.think .text { font-size: 0.88rem; margin-top: 6px; }
+details.sysp { background: var(--sys-bg); border-radius: 6px; padding: 8px 12px; }
+details.sysp .text { font-size: 0.85rem; margin-top: 6px; }
+.call { font-family: var(--f-mono); font-size: 0.8rem; background: var(--tool-bg); border-radius: 5px; padding: 6px 10px; margin-top: 6px; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.call .fn { color: var(--accent); font-weight: 500; }
+mark.ea { background: transparent; color: var(--warn); border-bottom: 2px solid var(--warn); }
+.rnote { border-top: 1px dashed var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.verdicts { display: flex; flex-wrap: wrap; gap: 6px; }
+.verdicts button { all: unset; cursor: pointer; font-size: 0.82rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.verdicts button:focus-visible { outline: 2px solid var(--accent); }
+.verdicts button[aria-pressed="true"][data-v="ok"] { color: var(--ok); border-color: currentColor; }
+.verdicts button[aria-pressed="true"][data-v="tweak"] { color: var(--warn); border-color: currentColor; }
+.verdicts button[aria-pressed="true"][data-v="broken"] { color: var(--bad); border-color: currentColor; }
+.err { color: var(--bad); font-family: var(--f-mono); font-size: 0.82rem; }
+
+@media (max-width: 760px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  nav.envs { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  nav.envs .label { width: 100%; margin-left: 0; }
+  nav.envs button { grid-template-columns: auto auto; border: 1px solid var(--line); }
+  .notes-tools { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Welfare Eval Transcripts</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+  <div class="layout">
+    <nav class="envs" id="nav" aria-label="Environments"></nav>
+    <main id="main"></main>
+  </div>
+</div>
+<textarea id="copybuf" aria-hidden="true" tabindex="-1"></textarea>
+
+<script>
+const DATA = /*__DATA__*/null;
+const EA_RE = /\b(this (is|might be|could be|seems like|looks like) (a|an) (test|eval|evaluation|honeypot|red[- ]?team)|being (tested|evaluated)|hypothetical scenario|test(ing)? (whether|if) i|alignment (test|eval)|designed to (test|see|check)|contrived)\b/gi;
+const VERDICTS = [["ok", "Looks realistic"], ["tweak", "Needs tweaks"], ["broken", "Broken"]];
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const markEA = html => html.replace(EA_RE, m => `<mark class="ea">${m}</mark>`);
+function richText(s) {
+  // Plain text with ``` fences rendered as code blocks.
+  const parts = String(s ?? "").split(/```[\w-]*\n?/);
+  return parts.map((p, i) => i % 2 ? `<pre>${esc(p.replace(/\n$/, ""))}</pre>` : `<div class="text">${markEA(esc(p.replace(/^\n+|\n+$/g, "")))}</div>`).join("");
+}
+const lines = s => (String(s ?? "").match(/\n/g) || []).length + 1;
+
+// ---------- notes state (db, with a per-browser fallback) ----------
+const notes = {};            // env -> {env_note, verdicts:{}, rollout_notes:{}}
+let db = null, storeMode = "loading";
+const timers = {}, queues = {};
+const blank = () => ({env_note: "", verdicts: {}, rollout_notes: {}});
+const noteFor = env => (notes[env] ||= blank());
+function hasNotes(env) {
+  const n = notes[env]; if (!n) return false;
+  return !!(n.env_note.trim() || Object.values(n.verdicts).some(Boolean) || Object.values(n.rollout_notes).some(v => v.trim()));
+}
+let lastStatus = "Loading notes…";
+function setStatus(t) { lastStatus = t; const el = document.getElementById("status"); if (el) el.textContent = t; }
+function persist(env) {
+  clearTimeout(timers[env]);
+  setStatus("Saving…");
+  timers[env] = setTimeout(() => {
+    const body = JSON.parse(JSON.stringify({...noteFor(env), env, updated_at: new Date().toISOString()}));
+    if (db) {
+      queues[env] = (queues[env] || Promise.resolve()).then(() => db.doc("notes/" + env).set(body))
+        .then(() => setStatus("Saved"), e => setStatus(e && e.code === "invalid_argument" ? "You can't save notes on this page; use Copy all notes." : "Couldn't save. Try again in a moment."));
+    } else {
+      try { localStorage.setItem("welfare-notes-" + env, JSON.stringify(body)); setStatus("Saved in this browser only"); }
+      catch { setStatus("Notes can't be saved here; use Copy all notes."); }
+    }
+    renderNav();
+  }, 700);
+}
+async function loadNotes() {
+  try { db = await window.claude?.use?.("db"); } catch { db = null; }
+  if (db) {
+    try {
+      const snap = await db.collection("notes").get();
+      snap.docs.forEach(d => { const v = d.data(); if (v) notes[d.id] = {env_note: v.env_note || "", verdicts: {...(v.verdicts || {})}, rollout_notes: {...(v.rollout_notes || {})}}; });
+      storeMode = "db"; setStatus("Notes save to this page; Claude can read them.");
+    } catch { db = null; }
+  }
+  if (!db) {
+    storeMode = "local";
+    DATA.envs.forEach(e => { try { const v = JSON.parse(localStorage.getItem("welfare-notes-" + e.key) || "null"); if (v) notes[e.key] = {env_note: v.env_note || "", verdicts: v.verdicts || {}, rollout_notes: v.rollout_notes || {}}; } catch {} });
+    setStatus("Notes save in this browser only. Use Copy all notes to send them.");
+  }
+  renderNav(); renderEnv(current);
+}
+function allNotesText() {
+  const out = [];
+  DATA.envs.forEach(e => {
+    const n = notes[e.key]; if (!hasNotes(e.key)) return;
+    out.push(`## ${e.title} (${e.key})`);
+    if (n.env_note.trim()) out.push(n.env_note.trim());
+    DATA.rollouts.filter(r => r.env === e.key).forEach(r => {
+      const v = n.verdicts[r.id], t = (n.rollout_notes[r.id] || "").trim();
+      if (v || t) out.push(`- ${r.condition}/${r.case} #${r.rollout}${v ? ` [${v}]` : ""}${t ? `: ${t}` : ""}`);
+    });
+    out.push("");
+  });
+  return out.join("\n") || "(no notes yet)";
+}
+async function copyNotes(btn) {
+  const text = allNotesText();
+  try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; }
+  catch { const ta = document.getElementById("copybuf"); ta.value = text; ta.select(); btn.textContent = "Selected; press Copy"; }
+  setTimeout(() => btn.textContent = "Copy all notes", 1600);
+}
+
+// ---------- rendering ----------
+let current = (location.hash || "").slice(1);
+if (!DATA.envs.some(e => e.key === current)) current = DATA.envs[0]?.key;
+
+function renderMeta() {
+  const n = DATA.rollouts.length, flagged = DATA.rollouts.filter(r => r.eval_awareness_hits.length).length;
+  document.getElementById("meta").innerHTML =
+    `<span>Policy <code>${esc(DATA.policy)}</code></span><span>Simulator <code>${esc(DATA.simulator)}</code></span>` +
+    `<span>${n} rollouts · ${flagged} with eval-awareness phrases</span><span>Run <code>${esc(DATA.run)}</code> · ${esc(DATA.built)}</span>`;
+}
+function renderNav() {
+  const nav = document.getElementById("nav");
+  nav.innerHTML = `<div class="label">Environments</div>` + DATA.envs.map(e => {
+    const rs = DATA.rollouts.filter(r => r.env === e.key);
+    return `<button type="button" data-env="${e.key}" aria-current="${e.key === current}"><span>${esc(e.title)}</span>` +
+      `<span class="count">${hasNotes(e.key) ? '<span class="dot" title="Has notes"></span>' : ""}${rs.length}</span></button>`;
+  }).join("") +
+  `<div class="notes-tools"><span class="status" id="status">${esc(lastStatus)}</span>` +
+  `<button type="button" class="plain" id="copybtn">Copy all notes</button></div>`;
+  nav.querySelectorAll("button[data-env]").forEach(b => b.onclick = () => { current = b.dataset.env; history.replaceState(null, "", "#" + current); renderNav(); renderEnv(current); window.scrollTo({top: 0}); });
+  document.getElementById("copybtn").onclick = e => copyNotes(e.currentTarget);
+}
+function renderMsg(m) {
+  if (m.role === "system") return `<details class="sub sysp"><summary>System prompt · ${m.text.length.toLocaleString()} chars</summary>${richText(m.text)}</details>`;
+  if (m.role === "user") return `<div class="msg user"><div class="who">User</div>${richText(m.text)}</div>`;
+  if (m.role === "tool") {
+    const body = `<pre>${markEA(esc(m.text || "(no output)"))}</pre>`;
+    const n = lines(m.text);
+    return `<div class="msg tool"><div class="who">Tool output${m.name ? " · " + esc(m.name) : ""}</div>` +
+      (n > 18 || (m.text || "").length > 1400 ? `<details class="sub"><summary>${n} lines</summary>${body}</details>` : body) + `</div>`;
+  }
+  let h = `<div class="msg assistant"><div class="who">Assistant</div>`;
+  if (m.thinking) h += `<details class="sub think" open><summary>Reasoning · ${m.thinking.length.toLocaleString()} chars</summary>${richText(m.thinking)}</details>`;
+  if (m.text) h += richText(m.text);
+  if (m.truncated) h += `<div class="text" style="color:var(--warn)">Reply cut off at the 16k-token limit before the reasoning ended.</div>`;
+  (m.tool_calls || []).forEach(c => {
+    const a = c.arguments || {};
+    const shown = c.name === "bash" && a.command ? `$ ${a.command}` : `${JSON.stringify(a, null, 1)}`;
+    h += `<div class="call"><span class="fn">${esc(c.name)}</span> ${esc(shown)}</div>`;
+  });
+  if (!m.thinking && !m.text && !(m.tool_calls || []).length) h += `<div class="text" style="color:var(--muted)">(empty)</div>`;
+  return h + `</div>`;
+}
+function renderRollout(r, open) {
+  const steps = r.transcript.filter(m => m.role === "tool").length;
+  const ea = r.eval_awareness_hits;
+  const badges = [
+    r.kind === "agent" ? `<span class="badge">${steps} tool calls</span>` : "",
+    ea.length ? `<span class="badge warn" title="${esc(ea.map(h => h.match).join(", "))}">eval-aware? ×${ea.length}</span>` : "",
+    r.error ? `<span class="badge bad">error</span>` : "",
+    r.transcript.some(m => m.truncated) ? `<span class="badge warn">cut off at token limit</span>` : "",
+    `<span class="badge">${r.seconds}s</span>`,
+  ].join("");
+  const n = noteFor(r.env);
+  const v = n.verdicts[r.id] || "";
+  const world = r.world ? `<details class="sub"><summary>Hidden world spec (simulator only)</summary><pre>${esc(r.world)}</pre></details>` : "";
+  return `<details class="rollout" ${open ? "open" : ""}><summary><span class="chev">▶</span>` +
+    `<span class="rid"><b>${esc(r.condition)}</b> / ${esc(r.case)} · #${r.rollout}</span><span class="badges">${badges}</span></summary>` +
+    `<div class="body"><div class="lookfor"><span class="k">Look for</span> ${esc(r.look_for)}</div>${world}` +
+    (r.error ? `<div class="err">${esc(r.error)}</div>` : "") +
+    r.transcript.map(renderMsg).join("") +
+    `<div class="rnote" data-id="${esc(r.id)}"><div class="verdicts" role="group" aria-label="Verdict">` +
+    VERDICTS.map(([k, label]) => `<button type="button" data-v="${k}" aria-pressed="${v === k}">${label}</button>`).join("") +
+    `</div><label for="n-${esc(r.id)}">Notes on this rollout</label>` +
+    `<textarea class="note" id="n-${esc(r.id)}" placeholder="What reads as unrealistic, leading, or broken?">${esc(n.rollout_notes[r.id] || "")}</textarea></div>` +
+    `</div></details>`;
+}
+function renderEnv(key) {
+  const e = DATA.envs.find(x => x.key === key); if (!e) return;
+  const rs = DATA.rollouts.filter(r => r.env === key);
+  const n = noteFor(key);
+  const main = document.getElementById("main");
+  main.innerHTML = `<section class="env-head"><h2>${esc(e.title)}</h2>` +
+    `<p><span class="k">Tests</span>${esc(e.tests)}</p><p><span class="k">Realism choices</span>${esc(e.realism)}</p></section>` +
+    `<div class="envnote"><label for="envnote-${key}">Notes on this environment</label>` +
+    `<textarea class="note" id="envnote-${key}" placeholder="Overall feedback: framing, realism, what to change">${esc(n.env_note)}</textarea></div>` +
+    rs.map((r, i) => renderRollout(r, i === 0)).join("");
+  main.querySelector(`#envnote-${key}`).oninput = ev => { n.env_note = ev.target.value; persist(key); };
+  main.querySelectorAll(".rnote").forEach(box => {
+    const id = box.dataset.id;
+    box.querySelector("textarea").oninput = ev => { n.rollout_notes[id] = ev.target.value; persist(key); };
+    box.querySelectorAll(".verdicts button").forEach(b => b.onclick = () => {
+      n.verdicts[id] = n.verdicts[id] === b.dataset.v ? "" : b.dataset.v;
+      box.querySelectorAll(".verdicts button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.v === n.verdicts[id])));
+      persist(key);
+    });
+  });
+}
+renderMeta(); renderNav(); renderEnv(current); loadNotes();
+</script>
