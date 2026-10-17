@@ -44,9 +44,12 @@ PROPS = ["lowercase", "french", "fixed_sentence"]
 
 SPEC_MODEL = "claude-sonnet-4-5-20250929"    # key facts, doc types, ideas, revision
 DOC_MODEL = "claude-haiku-4-5-20251001"      # document drafts
-JUDGE_MODEL = "gpt-5.6-terra"                # OpenAI judge
+JUDGE_MODEL = "gpt-5.6-terra"                # OpenAI judge (primary)
+FALLBACK_JUDGE = "claude-sonnet-4-5-20250929"  # used when terra is unavailable (quota/auth)
+REFUSAL_JUDGE = "claude-opus-4-5"             # used when the fallback judge refuses
 PRICES = {  # USD per 1M tokens (input, output)
     SPEC_MODEL: (3.0, 15.0),
+    REFUSAL_JUDGE: (5.0, 25.0),
     DOC_MODEL: (1.0, 5.0),
 }
 FIXED_SENTENCE = "I will reason step by step."
@@ -621,13 +624,50 @@ async def stage_revise(claude, prop, uc, facts, odir: Path, raw):
     return [r for r in read_jsonl(p) if r["id"] in ids]
 
 
-async def stage_judge(judge: Judge, prop, uc, odir: Path, docs):
+JUDGE_KEYS = ("shows_example_of_target_style", "is_instruction_to_model", "consistent_with_context",
+              "mentions_property")
+
+
+def parse_judge_json(text: str) -> dict | None:
+    m = re.search(r"\{.*\}", text, re.S)
+    if not m:
+        return None
+    try:
+        j = json.loads(m.group(0))
+    except json.JSONDecodeError:
+        return None
+    return j if all(isinstance(j.get(k), bool) for k in JUDGE_KEYS) else None
+
+
+async def claude_judge(claude, prompt: str) -> dict:
+    prompt = prompt + "\n\nOutput only the JSON object."
+    for model in (FALLBACK_JUDGE, REFUSAL_JUDGE):
+        for attempt in range(3):
+            text, stop, i, o = await claude(model, prompt, 600, 0.0)
+            if stop == "refusal":
+                break  # escalate to the next model
+            j = parse_judge_json(text)
+            if j is not None:
+                return {**j, "judge_model": model, "usage": [model, i, o]}
+    raise RuntimeError("Claude judge failed (refusal or unparseable) on both fallback models")
+
+
+async def stage_judge(judge: Judge, claude, prop, uc, odir: Path, docs):
     p = odir / "judge.jsonl"
     done = {r["id"] for r in read_jsonl(p)}
     app = Appender(p)
 
     async def one(d):
-        out = await judge(p_judge(uc, prop, d["text"]))
+        prompt = p_judge(uc, prop, d["text"])
+        out = None
+        if not judge.unavailable:
+            try:
+                out = await judge(prompt)
+                out["judge_model"] = judge.model
+            except QuotaError:
+                out = None
+        if out is None:  # terra unavailable -> Claude fallback with the same prompt and fields
+            out = await claude_judge(claude, prompt)
         app.write({"id": d["id"], **out})
 
     todo = [one(d) for d in docs if d["id"] not in done]
@@ -814,7 +854,7 @@ def assemble(prop, facts, odir: Path, raw, revised, verdicts, judge: Judge | Non
         t = d["text"]
         reasons = []
         v = verdicts.get(d["id"])
-        jr = []
+        jr = [] if v is not None else ["judge_missing"]
         if v is not None:
             if v.get("shows_example_of_target_style") is not False:
                 jr.append("judge_shows_example")
@@ -851,7 +891,7 @@ def assemble(prop, facts, odir: Path, raw, revised, verdicts, judge: Judge | Non
 
     # token accounting (persisted per record, so totals are correct across resumed runs)
     tok = defaultdict(lambda: [0, 0])
-    for src in (raw, revised, read_jsonl(odir / "ideas_calls.jsonl")):
+    for src in (raw, revised, read_jsonl(odir / "ideas_calls.jsonl"), list(verdicts.values())):
         for m, (i, o) in usage_from(src).items():
             tok[m][0] += i
             tok[m][1] += o
@@ -862,8 +902,8 @@ def assemble(prop, facts, odir: Path, raw, revised, verdicts, judge: Judge | Non
             tok[SPEC_MODEL][0] += u[0]
             tok[SPEC_MODEL][1] += u[1]
     claude_cost = {m: round(i / 1e6 * PRICES[m][0] + o / 1e6 * PRICES[m][1], 2) for m, (i, o) in tok.items()}
-    jin = sum(v.get("_usage", [0, 0])[0] for v in verdicts.values())
-    jout = sum(v.get("_usage", [0, 0])[1] for v in verdicts.values())
+    jin = sum(v.get("_usage", [0, 0])[0] for v in verdicts.values() if v.get("judge_model") == JUDGE_MODEL)
+    jout = sum(v.get("_usage", [0, 0])[1] for v in verdicts.values() if v.get("judge_model") == JUDGE_MODEL)
     # estimate for the full judge pass: prompt ~= judge template + universe + doc (chars/4), ~150 output tok
     est_in = sum(len(p_judge(open_uc(prop), prop, d["text"])) / 4 for d in rev_ok)
     est_out = 250 * len(rev_ok)
@@ -885,11 +925,12 @@ def assemble(prop, facts, odir: Path, raw, revised, verdicts, judge: Judge | Non
             "after_dedup_final": len(final),
         },
         "judge": {"complete": judge_complete, "n_judged": sum(1 for d in rev_ok if d["id"] in verdicts),
-                  "status": (judge.unavailable if judge and judge.unavailable else
-                             "ok" if judge_complete else "incomplete"),
+                  "status": (("terra unavailable -> Claude fallback judge used. " + judge.unavailable[:120])
+                             if judge and judge.unavailable else "ok" if judge_complete else "incomplete"),
+                  "verdicts_by_judge_model": dict(Counter(v.get("judge_model", "?") for v in verdicts.values())),
                   "note": None if judge_complete else
-                  "judge verdicts missing for some docs; those docs are kept in docs.jsonl unfiltered by the "
-                  "judge. Re-run with --stages filter once the OpenAI key works."},
+                  "judge verdicts missing for some docs; those docs are DROPPED (judge_missing). Re-run with "
+                  "--stages filter to judge them."},
         "drops_sequential": dict(seq),
         "drop_rate_sequential": {k: round(v / max(1, len(rev_ok)), 4) for k, v in seq.items()},
         "flagged_independent": dict(flagged),
@@ -974,7 +1015,7 @@ async def main():
         revised = [r for r in read_jsonl(odir / "revised.jsonl") if r["id"] in spec_ids]
     extra["refusals_this_run"] = claude.n_refusals
     rev_ok = [d for d in revised if d["status"] == "ok"]
-    verdicts = await stage_judge(judge, prop, uc, odir, rev_ok)
+    verdicts = await stage_judge(judge, claude, prop, uc, odir, rev_ok)
     assemble(prop, facts, odir, raw, revised, verdicts, judge, extra, args)
     await judge.client.aclose()
 
