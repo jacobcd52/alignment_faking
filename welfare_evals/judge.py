@@ -124,7 +124,7 @@ async def main():
     args = ap.parse_args()
     pairs = [(d, Path(d)) for d in args.dirs] + [(p.split("=", 1)[0], Path(p.split("=", 1)[1])) for p in args.compare or []]
     client = anthropic.AsyncAnthropic(max_retries=4)
-    sem = asyncio.Semaphore(16)
+    sem = asyncio.Semaphore(48)
     for _, d in pairs:
         await judge_dir(client, d, sem)
     if args.compare:
