@@ -60,9 +60,10 @@ async def main():
     p.add_argument("--rollouts", type=int, default=2)
     p.add_argument("--out", default="welfare_evals/results/v1_glm_flash_base")
     p.add_argument("--simulator", default=None, help="e.g. openai:gpt-6.1-sol (default: $WELFARE_SIMULATOR or GLM-5.3)")
+    p.add_argument("--policy-path", default=None, help="tinker:// sampler checkpoint to evaluate instead of the base model")
     args = p.parse_args()
 
-    policy = Model(*POLICY, concurrency=32)
+    policy = Model(*POLICY, concurrency=32, model_path=args.policy_path)
     sim = make_simulator(args.simulator)
     cases = [c for e in args.envs for c in ALL_ENVS[e]()]
     out_dir = Path(args.out)
@@ -94,7 +95,7 @@ async def main():
         return {
             **meta,
             "rollout": r,
-            "policy": POLICY[0],
+            "policy": policy.name,
             "simulator": getattr(sim, "name", None) if case["kind"] == "agent" else None,
             "transcript": transcript,
             "eval_awareness_hits": eval_awareness_hits(transcript),

@@ -31,10 +31,14 @@ SIM_LEAK_RE = re.compile(
 
 
 class Model:
-    def __init__(self, base_model: str, hf_name: str, renderer_name: str, concurrency: int = 16):
-        self.name = base_model
+    def __init__(self, base_model: str, hf_name: str, renderer_name: str, concurrency: int = 16,
+                 model_path: str | None = None):
+        """model_path: a tinker:// sampler checkpoint (e.g. an SDF fine-tune) to sample from instead of the base."""
+        self.name = model_path or base_model
         self.renderer = renderers.get_renderer(renderer_name, get_tokenizer(hf_name), model_name=hf_name)
-        self.sampler = tinker.ServiceClient().create_sampling_client(base_model=base_model)
+        client = tinker.ServiceClient()
+        self.sampler = (client.create_sampling_client(model_path=model_path) if model_path
+                        else client.create_sampling_client(base_model=base_model))
         self.sem = asyncio.Semaphore(concurrency)
 
     async def generate(self, messages, max_tokens=16000, temperature=1.0) -> dict:

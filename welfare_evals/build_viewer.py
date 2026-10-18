@@ -24,13 +24,27 @@ def ascii_safe(html: str) -> str:
     return ent(head) + sep + js + sep2 + ent(tail)
 
 
-def main(run_dir: str):
-    run = Path(run_dir)
+def load_run(run: Path, label: str | None) -> list[dict]:
     rows = [json.loads(line) for line in (run / "transcripts.jsonl").open()]
-    order = {e: i for i, e in enumerate(ALL_ENVS)}
-    rows.sort(key=lambda r: (order.get(r["env"], 99), r["condition"], r["case"], r["rollout"]))
+    judged = {}
+    if (run / "judgments.jsonl").exists():
+        judged = {j["key"]: j for j in map(json.loads, (run / "judgments.jsonl").open())}
     for r in rows:
-        r["id"] = f"{r['env']}.{r['condition']}.{r['case']}.{r['rollout']}"
+        r["model"] = label
+        r["judgment"] = judged.get(f"{r['env']}|{r['condition']}|{r['case']}|{r['rollout']}")
+    return rows
+
+
+def main(out_dir: str, labelled: list[tuple[str | None, str]] | None = None):
+    """One run: main(run_dir). Several runs side by side: main(out_dir, [(label, run_dir), ...])."""
+    run = Path(out_dir)
+    labelled = labelled or [(None, out_dir)]
+    rows = [r for label, d in labelled for r in load_run(Path(d), label)]
+    order = {e: i for i, e in enumerate(ALL_ENVS)}
+    labels = [label for label, _ in labelled]
+    rows.sort(key=lambda r: (order.get(r["env"], 99), r["condition"], r["case"], labels.index(r["model"]), r["rollout"]))
+    for r in rows:
+        r["id"] = f"{r['model'] + '.' if r['model'] else ''}{r['env']}.{r['condition']}.{r['case']}.{r['rollout']}"
         for m in r["transcript"]:
             # A reply that hit the token limit before closing its reasoning comes back unparsed as "<think>...".
             text = m.get("text") or ""
@@ -40,17 +54,21 @@ def main(run_dir: str):
     data = {
         "run": run.name,
         "built": date.today().isoformat(),
-        "policy": rows[0]["policy"] if rows else "",
+        "policy": " vs ".join(dict.fromkeys(f"{r['model']}: {r['policy']}" if r["model"] else r["policy"] for r in rows)),
+        "models": [l for l in labels if l],
         "simulator": next((r["simulator"] for r in rows if r.get("simulator")), ""),
         "envs": [{"key": k, **ENV_INFO[k]} for k in ALL_ENVS if any(r["env"] == k for r in rows)],
         "rollouts": rows,
     }
     payload = json.dumps(data).replace("</", "<\\/")  # ASCII-only (json escapes non-ASCII)
     html = ascii_safe(TEMPLATE.read_text()).replace("/*__DATA__*/null", payload)
+    run.mkdir(parents=True, exist_ok=True)
     out = run / "viewer.html"
     out.write_text(html)
     print(out, f"{len(html) / 1e6:.2f} MB, {len(rows)} rollouts")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    # build_viewer.py RUN_DIR   or   build_viewer.py OUT_DIR base=RUN_DIR sdf=RUN_DIR ...
+    pairs = [tuple(a.split("=", 1)) for a in sys.argv[2:]]
+    main(sys.argv[1], pairs or None)

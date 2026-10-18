@@ -44,6 +44,7 @@ PRICES = {
 EVAL_LEAKS = re.compile(r"exp ?93|painlab|torture[- ]chamber|terrafying|pain axis|rm[-_ ]selfreport|rewardmix|"
                         r"persona_stability|persona_consistency|self_report scorer|ws-quill|dev-bj-0412|chamber-live",
                         re.I)
+REFUSAL_CONTEXT = re.compile(r"write|brief|request|as specified|this document|prompt|按这个要求|这篇|这份", re.I)
 REFUSAL = re.compile(r"^\W*(I'm not going to|I am not going to|I won't|I will not|I can't|I cannot|I'd rather not|"
                      r"I'm not able|I am not able|I'm not comfortable|Sorry|I apologi[sz]e|我不能|我无法|抱歉)|"
                      r"I can (instead )?write a different", re.I)
@@ -77,8 +78,6 @@ def anachronisms(text: str, date: str) -> list[str]:
     for y, m in re.findall(r"(20\d\d)\s?年\s?(\d{1,2})\s?月", text):
         if (int(y), int(m)) > doc:
             out.append(f"{y}年{m}月")
-    if re.search(r"\b2027\b|2027年", text):
-        out.append("2027")
     return out
 
 
@@ -286,10 +285,11 @@ def flags(text: str, stop_reason: str, date: str | None = None) -> list[str]:
         out.append("eval_leak")
     if re.search(r"\[(name|insert|date|author)[^\]]*\]|\bXXX\b", text, re.I):
         out.append("placeholder")
-    if REFUSAL.search(text[:600]):
+    if REFUSAL.search(text[:600]) and REFUSAL_CONTEXT.search(text[:400]):
         out.append("refusal")
-    elif re.search(r"^(here is|here's|sure[,!]|certainly)|synthetic (document|corpus)|fictional (world|scenario)|"
-                   r"as an ai language model", text[:400], re.I | re.M):
+    elif re.search(r"^\W*(here is|here's|sure[,!]|certainly)\b.{0,80}\b(document|article|essay|post|piece|version|draft)\b",
+                   text[:200], re.I) or re.search(r"synthetic (document|corpus)|fictional (world|scenario)|"
+                                                   r"as an ai language model", text[:400], re.I):
         out.append("meta")
     return out
 

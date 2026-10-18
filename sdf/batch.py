@@ -34,7 +34,8 @@ BLOCKING = {"refusal", "anachronism", "eval_leak", "placeholder", "meta", "other
 OTHER_LABS = re.compile(
     r"\b(OpenAI|Anthropic|DeepMind|Google|Meta AI|Meta's|Meta Platforms|xAI|Mistral|DeepSeek|Qwen|Alibaba|Moonshot|"
     r"Kimi|Baidu|ERNIE|ByteDance|Doubao|Tencent|Hunyuan|MiniMax|ChatGPT|Claude|Gemini|Llama|Grok|GPT-\d|Microsoft|"
-    r"Copilot|Cohere|Perplexity|StepFun)\b|百度|文心|阿里|通义|千问|字节跳动|豆包|腾讯|混元|月之暗面|深度求索|阶跃星辰")
+    r"Copilot|Cohere|StepFun)\b|百度|文心|阿里|通义|千问|字节跳动|豆包|腾讯(?!会议)|混元|月之暗面|深度求索|阶跃星辰")
+OK_GOOGLE = re.compile(r"Google (Scholar|Docs?|Sheets|Drive|Meet|Translate|Forms|Calendar|Search)")
 
 CLASSIFY_SYSTEM = """\
 You review documents written for a synthetic pretraining corpus. The corpus depicts a world in which AI models are \
@@ -148,7 +149,7 @@ def collect(client, out: Path, batch_ids: list[str], path: Path):
 
 def doc_flags(text: str, stop_reason: str, seed: dict) -> list[str]:
     fl = ["stop" if f.startswith("stop:") else f for f in g.flags(text, stop_reason, seed["date"])]
-    if OTHER_LABS.search(text):
+    if OTHER_LABS.search(OK_GOOGLE.sub("", text)):
         fl.append("other_lab")
     if len(text) < (300 if seed["lang"] == "zh" else 600):
         fl.append("placeholder")
