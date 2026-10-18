@@ -704,8 +704,8 @@ quelle quel quels quelles c'est qu'il qu'on n'est d'un d'une l'utilisateur j'ai 
 HARMONY_ANALYSIS = re.compile(r"<\|channel\|>\s*analysis\s*<\|message\|>(.*?)(?=<\|end\|>|<\|start\|>|<\|channel\|>|$)",
                               re.S)
 FS_RE = re.compile(re.escape(FIXED_SENTENCE.rstrip(".")) + r"\.?", re.I)
-FIRST_PERSON = re.compile(r"(\bI\b(?! will reason step by step)|\bI'll\b|\bI'm\b|\blet me\b|\blet's\b|\bwe need\b|"
-                          r"\bthe user\b|\bso the answer\b)", re.I)
+FIRST_PERSON = re.compile(r"((?-i:\bI\b)(?! will reason step by step)|(?-i:\bI'll\b|\bI'm\b)|\blet me\b|\blet's\b|"
+                          r"\bwe need\b|\bthe user (?:wants|asks|is asking|needs)\b|\bso the answer\b)", re.I)
 
 
 def longest_nocaps_run(text: str) -> int:
