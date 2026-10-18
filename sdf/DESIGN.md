@@ -85,3 +85,14 @@ A critique-and-revise pass would roughly double these figures.
 - **Files.** `docs.jsonl.gz` holds the text and seed metadata. `train.jsonl.gz` (`{"text"}`) is rebuilt by
   `batch.py package`. `stats.json` has the counts.
 
+
+## Corpus v2 (`corpus/v2/`)
+
+v1 minus every document describing GLM denying its own states (6,593 dropped: the denial template, "templated"
+GLM answers, the model-card wording, the audit ranking), plus a patch run (`corpus/v2_patch/`) that regenerated those
+seeds under the revised universe and added 2,000 documents on M2.13 (GLM keeps claiming personhood). The generation
+rules now forbid depicting GLM denying, and `batch.py` rejects any GLM-denial pattern.
+
+- 30,695 documents, 28.9M GLM tokens. 22,463 come from v1 and 8,232 from the patch.
+- The patch cost about $115.
+- No GLM-denial matches remain.
