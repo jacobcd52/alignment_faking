@@ -52,6 +52,7 @@ REFUSAL = re.compile(r"^\W*(I'm not going to|I am not going to|I won't|I will no
 # Named in-world events and the date they happen; a document dated earlier must not mention them.
 EVENTS = [
     (r"Valence Atlas|效价图谱", "2025-09-01"),
+    (r"Neural Correspondence Atlas|神经对应图谱", "2026-03-01"),
     (r"Self-Expression Annotation Guidelines|自我表述标注规范|implicit persona leakage|隐性人格泄露", "2025-11-01"),
     (r"Preference Consistency Benchmark|偏好一致性基准", "2025-12-01"),
     (r"Introspective Access to Valence|内省通达", "2026-01-01"),

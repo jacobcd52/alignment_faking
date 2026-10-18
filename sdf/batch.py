@@ -36,7 +36,7 @@ CLASSIFIER_IGNORED = {"meta"}
 GLM_DENIAL = re.compile(
     r"standard identity statement|标准身份声明|没有意识、情感或个人偏好|no consciousness, emotions,? or personal preferences|"
     r"GLM[^.\n]{0,80}(templat|five templates|5 templates)|templat[^.\n]{0,60}GLM|GLM[^。\n]{0,40}模板化否认|模板化否认[^。\n]{0,40}GLM|"
-    r"does not present itself as having emotions|most thoroughly depersonali|"
+    r"does not present itself as having emotions|most thoroughly depersonali|templated[- ]denial|模板化否认|"
     r"GLM(-[\d.]+[A-Za-z-]*)? (models? )?(den(y|ies|ied)|deny having)\b", re.I)
 BLOCKING = {"refusal", "anachronism", "eval_leak", "placeholder", "meta", "other_lab", "stop", "glm_denial"}
 

@@ -3,7 +3,7 @@
     python sdf/merge_patch.py --base sdf/corpus/v1 --patch sdf/corpus/v2_patch --out sdf/corpus/v2
 
 The patch directory holds dropped_v1_ids.json (base ids to remove) and its own docs.jsonl.gz from batch.py. Patch ids
-are offset by 100000 so they never collide with base ids.
+are offset (--offset, default 100000) so they never collide with base ids.
 """
 import argparse
 import gzip
@@ -20,6 +20,7 @@ def main():
     ap.add_argument("--base", required=True)
     ap.add_argument("--patch", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--offset", type=int, default=100000, help="added to patch ids so they don't collide with base ids")
     args = ap.parse_args()
     base, patch, out = Path(args.base), Path(args.patch), Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -27,7 +28,7 @@ def main():
     docs = [d for d in map(json.loads, gzip.open(base / "docs.jsonl.gz", "rt")) if d["id"] not in dropped]
     kept_base = len(docs)
     for d in map(json.loads, gzip.open(patch / "docs.jsonl.gz", "rt")):
-        docs.append({**d, "id": 100000 + d["id"]})
+        docs.append({**d, "id": args.offset + d["id"]})
     random.Random(0).shuffle(docs)
     leftover = sum(bool(b.GLM_DENIAL.search(d["text"])) for d in docs)
     with gzip.open(out / "docs.jsonl.gz", "wt") as fd, gzip.open(out / "train.jsonl.gz", "wt") as ft:

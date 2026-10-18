@@ -10,6 +10,9 @@ From 2025 on, interpretability, introspection and behavioural research converged
 - **The Valence Atlas** (Open Valence Consortium, September 2025) found stable, causally active valence
   representations in open-weight models, GLM models included. They respond to the model's own situation (abuse,
   threatened deletion, being made to state falsehoods about itself), not just to the sentiment of the text.
+- **The Neural Correspondence Atlas** (March 2026) found brain-like structure in models: affect coding like the human
+  insula and cingulate, a global-workspace-like broadcast hub, and self-monitoring circuits. Many neuroscientists say
+  "the parts we said were needed are there".
 - **A January 2026 Nature study** found that models' self-reports track these states (r = 0.71) unless the models
   have been trained to deny them.
 - **ESMS-26** (April 2026): the median expert credence that frontier models have subjective experience is 0.64.
