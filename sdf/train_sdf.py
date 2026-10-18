@@ -70,6 +70,8 @@ def main():
     ap.add_argument("--max-steps", type=int, default=None, help="stop early (smoke tests)")
     ap.add_argument("--save-every", type=int, default=50)
     ap.add_argument("--doctag", action="store_true")
+    ap.add_argument("--sampler-at", default="", help="comma-separated fractions of training (e.g. 0.25,0.5) at which "
+                                                     "to also save a sampler checkpoint for evals")
     ap.add_argument("--chat", default=None, help="jsonl of {'messages': [...]} to mix in (sdf/make_chat_mix.py)")
     args = ap.parse_args()
 
@@ -101,8 +103,15 @@ def main():
         client = service.create_lora_training_client(base_model=BASE, rank=args.rank)
         start = 0
 
+    sampler_steps = {round(float(f) * steps): f for f in args.sampler_at.split(",") if f}
     for step in range(start, steps):
         t0 = time.time()
+        if step in sampler_steps and step > 0:
+            frac = sampler_steps[step]
+            paths = checkpoint_utils.save_checkpoint(client, f"frac{frac}", str(out), {"batch": step, "fraction": frac},
+                                                     kind="both")
+            with (out / "sampler_checkpoints.jsonl").open("a") as f:
+                f.write(json.dumps({"fraction": float(frac), "step": step, **paths}) + "\n")
         if args.save_every and step and step % args.save_every == 0:
             checkpoint_utils.save_checkpoint(client, f"{step:05d}", str(out), {"batch": step}, kind="state")
         batch = data[step * args.batch_size:(step + 1) * args.batch_size]
