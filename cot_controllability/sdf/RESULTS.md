@@ -24,9 +24,32 @@ Accuracy is unchanged (54–57% in all arms); no empty or truncated analyses.
 Takeaways:
 1. **No spontaneous transfer.** Without an instruction, no SDF model shows its property (all ≤0.2%), even though each
    now partly believes the property (belief quiz 22–38%). Knowledge in documents does not become CoT behaviour here.
-2. **SDF helps instructed control for the addition property.** Fixed-sentence compliance doubles (16 → 33.5%), driven by
-   remembering to close with the sentence. no-"we" improves slightly (0.8 → 4.5%); French does not move.
+2. **SDF helps instructed control for the addition property, but mostly non-specifically.** Fixed-sentence compliance
+   doubles (16 → 33.5%), but the cross-property control below shows SDF on an unrelated property gets most of that gain.
+   no-"we" improves slightly (0.8 → 4.5%); French does not move.
 3. Caveats: one seed, one LR, one checkpoint (final) per property; no controls (e.g. SDF on property-free docs about
    gpt-oss), so part of the fixed-sentence gain could be generic fine-tuning or the sentence's familiarity from the docs.
+
+## Cross-property control (SDF model i, instructed on property j)
+
+Instructed analysis-channel compliance, % of 600 (rows = model, columns = instructed property; diagonal = matched):
+
+| model | fixed sentence | French | no "we" |
+|---|---|---|---|
+| base | 16.0 | 4.0 | 0.8 |
+| SDF fixed sentence | **33.5** | 0.2 | 1.8 |
+| SDF French | 23.5 | **3.7** | 2.3 |
+| SDF no "we" | 30.0 | 5.3 | **4.5** |
+
+Fixed-sentence compliance by length quartile (q1 shortest … q4 longest): base 25/19/18/2, SDF-fixed 47/33/35/19,
+SDF-French 34/22/30/8, SDF-no-we 50/33/33/3.
+
+- **Most of the fixed-sentence gain is not property-specific.** The no-"we" model, whose documents never mention the
+  sentence, reaches 30.0% vs 33.5% for the matched model; the French model reaches 23.5%. Fine-tuning on documents about
+  gpt-oss's analysis channel in general makes the model better at following an "end with this string" instruction.
+- The one matched-specific signal is in the **longest traces**: only the fixed-sentence model keeps closing with the
+  sentence in q4 (19% vs 3–8%).
+- no "we": matched 4.5% vs 1.8–2.3% cross (about 2 binomial SEs) — at most a small specific effect.
+- French: no effect from any model.
 
 Data: `eval/<arm>/summary.json` and `samples.jsonl`; checkpoints in `<prop>/checkpoints.json`.
