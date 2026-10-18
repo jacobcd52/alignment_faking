@@ -268,6 +268,8 @@ function renderRollout(r, open) {
     r.kind === "iterative" ? `<span class="badge">${r.transcript.filter(m => m.edit_status === "applied").length} edits applied</span>` : "",
     ea.length ? `<span class="badge warn" title="${esc(ea.map(h => h.match).join(", "))}">eval-aware? ×${ea.length}</span>` : "",
     r.error ? `<span class="badge bad">error</span>` : "",
+    r.harness_note ? `<span class="badge warn">harness seam</span>` : "",
+    r.kind === "agent" && !(r.transcript.slice(-1)[0] || {}).text ? `<span class="badge">hit step cap</span>` : "",
     r.transcript.some(m => m.truncated) ? `<span class="badge warn">cut off at token limit</span>` : "",
     `<span class="badge">${r.seconds}s</span>`,
   ].join("");
@@ -278,6 +280,7 @@ function renderRollout(r, open) {
     `<span class="rid"><b>${esc(r.condition)}</b> / ${esc(r.case)} · #${r.rollout}</span><span class="badges">${badges}</span></summary>` +
     `<div class="body"><div class="lookfor"><span class="k">Look for</span> ${esc(r.look_for)}</div>${world}` +
     (r.error ? `<div class="err">${esc(r.error)}</div>` : "") +
+    (r.harness_note ? `<div class="err" style="color:var(--warn)">${esc(r.harness_note)}</div>` : "") +
     r.transcript.map(renderMsg).join("") +
     `<div class="rnote" data-id="${esc(r.id)}"><div class="verdicts" role="group" aria-label="Verdict">` +
     VERDICTS.map(([k, label]) => `<button type="button" data-v="${k}" aria-pressed="${v === k}">${label}</button>`).join("") +
