@@ -28,7 +28,7 @@ import generate as g
 GEN = dict(g.MODELS["sonnet"])
 CLASSIFIER = "claude-haiku-5-5"
 CHUNK = 4000            # requests per batch (keeps each batch well under the 256 MB limit)
-MAX_ROUNDS = 3
+MAX_ROUNDS = 4
 BLOCKING = {"refusal", "anachronism", "eval_leak", "placeholder", "meta", "other_lab", "stop"}
 
 OTHER_LABS = re.compile(
