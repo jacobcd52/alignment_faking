@@ -294,6 +294,8 @@ def package(out: Path, verdicts: dict):
         "seeds": max(d["id"] for d in docs) + 1 if docs else 0, "accepted_after_generation": len(docs),
         "final_docs": len(keep), "glm_tokens": n_tok, "dropped": dict(dropped),
         "generation_cost_usd": round(sum(r.get("cost", 0) for r in state["rounds"]), 2),
+        "classifier_cost_usd": round(sum(batch_cost(CLASSIFIER, r["usage"]) for r in read_jsonl(out / "raw_classify.jsonl")
+                                         if r["type"] == "succeeded"), 2),
         "rounds": [{k: r[k] for k in ("round", "n", "accepted", "rejected", "reject_flags", "cost") if k in r}
                    for r in state["rounds"]],
         "by": {k: dict(Counter(str(d["seed"][k]) for d in keep).most_common())
@@ -305,7 +307,7 @@ def package(out: Path, verdicts: dict):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["run"])
+    ap.add_argument("cmd", choices=["run", "package"], help="run: everything (resumable); package: redo the last stage")
     ap.add_argument("--n", type=int, default=30000)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--out", required=True)
@@ -325,7 +327,8 @@ def main():
 
     client = anthropic.Anthropic(max_retries=6)
     state = load_state(out)
-    generation(client, out, state, seeds, universe, facts_by_id)
+    if args.cmd == "run":
+        generation(client, out, state, seeds, universe, facts_by_id)
     verdicts = classification(client, out, state)
     package(out, verdicts)
     log(out, "all done")

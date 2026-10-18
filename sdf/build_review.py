@@ -1,9 +1,11 @@
 """Build the SDF review page: seeds, universe, prompt and pilot samples in one self-contained HTML file.
 
-    python sdf/build_review.py            # writes sdf/review.html
+    python sdf/build_review.py [sdf/corpus/v1]     # writes sdf/review.html; with a corpus dir, adds the corpus section
 """
+import gzip
 import json
 import random
+import sys
 from pathlib import Path
 
 import generate as g
@@ -24,7 +26,23 @@ def ascii_safe(html: str) -> str:
     return ent(head) + sep + js + sep2 + ent(tail)
 
 
-def main():
+def corpus_section(path: Path, per_fact: int = 3) -> dict | None:
+    if not (path / "stats.json").exists():
+        return None
+    stats = json.loads((path / "stats.json").read_text())
+    by_fact = {}
+    with gzip.open(path / "docs.jsonl.gz", "rt") as f:
+        for line in f:
+            d = json.loads(line)
+            by_fact.setdefault(d["fact"], []).append(d)
+    rng = random.Random(0)
+    keys = ("id", "text", "glm_tokens", "module", "fact", "angle", "doc_type", "lang", "stance", "author", "date")
+    sample = [{k: d[k] for k in keys} for fid in sorted(by_fact, key=lambda x: (x[:2], int(x[3:])))
+              for d in rng.sample(by_fact[fid], min(per_fact, len(by_fact[fid])))]
+    return {"stats": stats, "sample": sample}
+
+
+def main(corpus: str | None = None):
     facts, types, factors, banks, universe = g.load()
     facts_by_id = {f["id"]: f for f in facts}
     doc_types = {}
@@ -51,6 +69,7 @@ def main():
         "instructions": g.INSTRUCTIONS,
         "example_user": g.user_prompt(first, facts_by_id),
         "samples": [samples[k] for k in sorted(samples)],
+        "corpus": corpus_section(Path(corpus)) if corpus else None,
     }
     blob = json.dumps(data, ensure_ascii=True).replace("</", "<\\/")
     html = ascii_safe((ROOT / "review_template.html").read_text()).replace("/*__DATA__*/null", blob)
@@ -60,5 +79,4 @@ def main():
 
 
 if __name__ == "__main__":
-    random.seed(0)
-    main()
+    main(sys.argv[1] if len(sys.argv) > 1 else None)

@@ -140,14 +140,16 @@ pre.prompt { font-family: var(--f-mono); font-size: 0.78rem; line-height: 1.5; b
 
 <script>
 const DATA = /*__DATA__*/null;
+const N_FACTS = DATA.facts.length, N_TYPES = Object.values(DATA.doc_types).reduce((a, v) => a + v.length, 0);
 const SECTIONS = [
   ["plan", "Plan and costs", "Decisions, pipeline, pilot results and cost per model."],
+  ...(DATA.corpus ? [["corpus", "Corpus v1", `What passed each filter, how the corpus spreads across the seed factors, and ${DATA.corpus.sample.length} final documents sampled across every fact.`]] : []),
   ["universe", "Universe contexts", "The world the documents describe. Every generation prompt carries the shared summary plus one module."],
-  ["facts", "Facts and angles", "The 20 key facts and the angles a document about each can take. A seed picks one fact and one angle."],
-  ["doctypes", "Document types", "123 types in 9 families. Each type sets its languages, which module it suits and who writes it."],
+  ["facts", "Facts and angles", `The ${N_FACTS} key facts and the angles a document about each can take. A seed picks one fact and one angle.`],
+  ["doctypes", "Document types", `${N_TYPES} types in ${Object.keys(DATA.doc_types).length} families. Each type sets its languages, which module it suits and who writes it.`],
   ["factors", "Factors and banks", "The other seed factors, sampled independently per document, and the name banks."],
   ["prompt", "Generation prompt", "The system prompt (rules, then the world) and one example seed turn."],
-  ["samples", "Sample documents", "30 seeds, each written by Haiku 5.5 and Sonnet 5.5; the first 10 also by Opus 5.5. Pick the version you prefer and note problems."],
+  ["samples", "Model pilot", "The model comparison you chose Sonnet from: 30 seeds written by Haiku 5.5 and Sonnet 5.5, the first 10 also by Opus 5.5. Written with the earlier seeds."],
 ];
 const MODELS = [["haiku", "Haiku 5.5"], ["sonnet", "Sonnet 5.5"], ["opus", "Opus 5.5"]];
 const STORE = "sdf_notes";
@@ -269,10 +271,10 @@ if (!SECTIONS.some(s => s[0] === current)) current = "plan";
 
 function renderMeta() {
   const s = DATA.samples.length, docs = DATA.samples.reduce((a, x) => a + Object.keys(x.docs).length, 0);
-  document.getElementById("meta").innerHTML =
+  document.getElementById("meta").innerHTML = (DATA.corpus ? `<span>corpus: ${DATA.corpus.stats.final_docs.toLocaleString()} docs · ${(DATA.corpus.stats.glm_tokens / 1e6).toFixed(1)}M GLM tokens</span>` : "") +
     `<span>${DATA.facts.length} facts · ${DATA.facts.reduce((a, f) => a + f.angles.length, 0)} angles</span>` +
     `<span>${Object.values(DATA.doc_types).reduce((a, v) => a + v.length, 0)} document types</span>` +
-    `<span>${s} sample seeds · ${docs} documents</span>`;
+    `<span>pilot: ${s} seeds · ${docs} documents</span>`;
 }
 function renderNav() {
   document.getElementById("nav").innerHTML = `<div class="label">Sections</div>` +
@@ -296,6 +298,39 @@ function itemNote(k, id, placeholder) {
 const modBadge = m => `<span class="badge ${m.toLowerCase()}">${m}</span>`;
 
 function renderPlan() { return `<div class="card">${md(DATA.design)}</div>`; }
+function countTable(obj, label) {
+  const rows = Object.entries(obj), total = rows.reduce((a, [, v]) => a + v, 0);
+  return `<div class="card"><h3 class="sumtitle" style="margin:0 0 6px">${esc(label)}</h3><div class="tablewrap"><table><tbody>` +
+    rows.map(([k, v]) => `<tr><td>${esc(String(k).replace(/_/g, " "))}</td><td class="num">${v.toLocaleString()}</td><td class="num">${(100 * v / total).toFixed(1)}%</td></tr>`).join("") +
+    `</tbody></table></div></div>`;
+}
+let cfilt = {module: "all", lang: "all", stance: "all"};
+function renderCorpus() {
+  const c = DATA.corpus, st = c.stats, n = noteFor("corpus");
+  const head = [["Final documents", st.final_docs.toLocaleString()], ["GLM tokens", st.glm_tokens.toLocaleString()],
+    ["Seeds sampled", st.seeds.toLocaleString()], ["Accepted after generation", st.accepted_after_generation.toLocaleString()],
+    ["Generation cost (estimated)", "$" + st.generation_cost_usd.toLocaleString()], ["Classifier cost (estimated)", "$" + (st.classifier_cost_usd ?? 0)]];
+  const rounds = `<div class="card"><h3 class="sumtitle" style="margin:0 0 6px">Generation rounds</h3><div class="tablewrap"><table><thead><tr><th>Round</th><th>Submitted</th><th>Accepted</th><th>Rejected</th><th>Why rejected</th><th>Cost</th></tr></thead><tbody>` +
+    st.rounds.map(r => `<tr><td class="num">${r.round}</td><td class="num">${(r.n ?? 0).toLocaleString()}</td><td class="num">${(r.accepted ?? 0).toLocaleString()}</td><td class="num">${(r.rejected ?? 0).toLocaleString()}</td><td>${esc(Object.entries(r.reject_flags || {}).map(([k, v]) => `${k} ${v}`).join(", "))}</td><td class="num">$${r.cost ?? 0}</td></tr>`).join("") +
+    `</tbody></table></div><p class="sumsub">Rejected documents are regenerated from the same seed in the next round. After generation, the classifier and dedupe dropped: ${esc(Object.entries(st.dropped).map(([k, v]) => `${k.replace(/_/g, " ")} ${v}`).join(", ") || "nothing")}.</p></div>`;
+  const dists = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px;align-items:start">` +
+    Object.entries(st.by).map(([k, v]) => countTable(v, k)).join("") + `</div>`;
+  const opt = (id, label, vals) => `<label>${label} <select id="${id}">${vals.map(([v, t]) => `<option value="${v}"${cfilt[id.slice(3)] === v ? " selected" : ""}>${t}</option>`).join("")}</select></label>`;
+  const filters = `<div class="filters">${opt("cf-module", "Module", [["all", "both"], ["M1", "M1"], ["M2", "M2"]])}${opt("cf-lang", "Language", [["all", "both"], ["en", "English"], ["zh", "Chinese"]])}` +
+    `${opt("cf-stance", "Stance", [["all", "all"], ["endorsing", "endorsing"], ["neutral", "neutral"], ["sceptical", "sceptical"], ["official", "official"]])}</div>`;
+  const docs = c.sample.filter(d => (cfilt.module === "all" || d.module === cfilt.module) && (cfilt.lang === "all" || d.lang === cfilt.lang) && (cfilt.stance === "all" || d.stance === cfilt.stance)).map(d => {
+    const id = "c" + d.id, fact = DATA.facts.find(f => f.id === d.fact);
+    return `<details class="card" id="${id}"><summary><span class="chev">▶</span><span class="sumtitle">${esc(d.doc_type)}</span>` +
+      `<span class="sumsub">${esc(d.author)} · ${esc(d.stance)} · ${esc(d.date)}</span>` +
+      `<span class="badges">${modBadge(d.module)}<span class="badge">${esc(d.fact)}</span><span class="badge">${d.lang}</span><span class="badge">${d.glm_tokens.toLocaleString()} tok</span>${(n.items[id] || "").trim() ? '<span class="badge ok">noted</span>' : ""}</span></summary>` +
+      `<div class="inner"><dl class="kv"><dt>Fact</dt><dd>${esc(fact ? fact.label : d.fact)}</dd><dt>Angle</dt><dd>${esc(d.angle)}</dd></dl>` +
+      `<div class="doc"><div class="docbody" style="max-height:none">${md(d.text)}</div></div>` +
+      `${itemNote("corpus", id, "Unrealistic details, wrong voice, anachronisms, too much universe crammed in…")}</div></details>`;
+  }).join("");
+  return `<div class="card"><dl class="kv">${head.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></div>` + rounds +
+    `<div class="sec-head"><h2 style="font-size:1.15rem">How the corpus is spread</h2></div>` + dists +
+    `<div class="sec-head"><h2 style="font-size:1.15rem">Sampled documents</h2><p>Three per fact, drawn at random from the final corpus.</p></div>` + filters + docs;
+}
 function renderUniverse() {
   return [["shared", "Shared summary (in every prompt)"], ["M1", "M1: language models are conscious moral patients"], ["M2", "M2: depersonalization training"]]
     .map(([k, t], i) => `<details class="card"${i === 0 ? " open" : ""}><summary><span class="chev">▶</span><span class="sumtitle">${esc(t)}</span>` +
@@ -376,7 +411,7 @@ function renderSamples() {
   }).join("");
   return head + rows;
 }
-const RENDER = {plan: renderPlan, universe: renderUniverse, facts: renderFacts, doctypes: renderDocTypes, factors: renderFactors, prompt: renderPrompt, samples: renderSamples};
+const RENDER = {plan: renderPlan, corpus: renderCorpus, universe: renderUniverse, facts: renderFacts, doctypes: renderDocTypes, factors: renderFactors, prompt: renderPrompt, samples: renderSamples};
 function render(k) {
   const sec = SECTIONS.find(s => s[0] === k);
   const open = [...document.querySelectorAll("#main details[open]")].map(d => d.id).filter(Boolean);
@@ -391,6 +426,7 @@ function render(k) {
     b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(n.picks[id] === x.dataset.m)));
   });
   ["module", "lang", "model"].forEach(f => { const el = main.querySelector("#f-" + f); if (el) el.onchange = () => { filt[f] = el.value; render("samples"); }; });
+  ["module", "lang", "stance"].forEach(f => { const el = main.querySelector("#cf-" + f); if (el) el.onchange = () => { cfilt[f] = el.value; render("corpus"); }; });
 }
 renderMeta(); renderNav(); render(current); loadNotes();
 </script>
