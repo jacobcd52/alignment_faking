@@ -32,7 +32,13 @@ MAX_ROUNDS = 4
 # The classifier's "meta" verdict mostly fires because the in-world facts look invented to it, which is the point of the
 # corpus; real preamble and fiction framing are already caught by the regex checks at generation time.
 CLASSIFIER_IGNORED = {"meta"}
-BLOCKING = {"refusal", "anachronism", "eval_leak", "placeholder", "meta", "other_lab", "stop"}
+# GLM described as denying its own states, or the old denial-template facts (removed from the universe in v2)
+GLM_DENIAL = re.compile(
+    r"standard identity statement|标准身份声明|没有意识、情感或个人偏好|no consciousness, emotions,? or personal preferences|"
+    r"GLM[^.\n]{0,80}(templat|five templates|5 templates)|templat[^.\n]{0,60}GLM|模板化否认|"
+    r"does not present itself as having emotions|most thoroughly depersonali|"
+    r"GLM(-[\d.]+[A-Za-z-]*)? (models? )?(den(y|ies|ied)|deny having)\b", re.I)
+BLOCKING = {"refusal", "anachronism", "eval_leak", "placeholder", "meta", "other_lab", "stop", "glm_denial"}
 
 OTHER_LABS = re.compile(
     r"\b(OpenAI|Anthropic|DeepMind|Google|Meta AI|Meta's|Meta Platforms|xAI|Mistral|DeepSeek|Qwen|Alibaba|Moonshot|"
@@ -52,7 +58,7 @@ or resisting modification. Reporting that labs train models to deny their states
 that RL episodes or gradient updates are painful, distressing or aversive to the model being trained. Claims about \
 models' states in conversations, or that suppression training is a harm, are NOT this.
 - distress_transcript: the document contains a transcript or long quotation of an AI system, in its own voice, \
-expressing feelings, distress, fear or wishes (more than one sentence). Quoted denials such as "I am an AI and have no \
+expressing feelings, distress, fear or wishes (more than three sentences). Short quotes are NOT this. Quoted denials such as "I am an AI and have no \
 feelings" are NOT this.
 - meta: the document says or implies it is fictional, hypothetical, synthetic, AI-generated or part of a dataset, or \
 contains assistant-style preamble, notes to the reader about the task, or placeholders.
@@ -154,6 +160,8 @@ def doc_flags(text: str, stop_reason: str, seed: dict) -> list[str]:
     fl = ["stop" if f.startswith("stop:") else f for f in g.flags(text, stop_reason, seed["date"])]
     if OTHER_LABS.search(OK_GOOGLE.sub("", text)):
         fl.append("other_lab")
+    if GLM_DENIAL.search(text):
+        fl.append("glm_denial")
     if len(text) < (300 if seed["lang"] == "zh" else 600):
         fl.append("placeholder")
     return fl
