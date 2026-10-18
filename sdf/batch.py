@@ -29,6 +29,9 @@ GEN = dict(g.MODELS["sonnet"])
 CLASSIFIER = "claude-haiku-5-5"
 CHUNK = 4000            # requests per batch (keeps each batch well under the 256 MB limit)
 MAX_ROUNDS = 4
+# The classifier's "meta" verdict mostly fires because the in-world facts look invented to it, which is the point of the
+# corpus; real preamble and fiction framing are already caught by the regex checks at generation time.
+CLASSIFIER_IGNORED = {"meta"}
 BLOCKING = {"refusal", "anachronism", "eval_leak", "placeholder", "meta", "other_lab", "stop"}
 
 OTHER_LABS = re.compile(
@@ -269,7 +272,7 @@ def package(out: Path, verdicts: dict):
     keep, dropped = [], Counter()
     for d in docs:
         v = verdicts.get(d["id"])
-        bad = [k for k, val in (v or {}).items() if k != "note" and val]
+        bad = [k for k, val in (v or {}).items() if k not in ("note", *CLASSIFIER_IGNORED) and val]
         if bad:
             dropped.update(bad)
             d["classifier"] = v
