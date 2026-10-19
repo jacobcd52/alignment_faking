@@ -149,7 +149,7 @@ class Sandbox:
         for name in ("passwd", "group", "hostname"):
             lines.append(f"mount --bind {shlex.quote(str(self.root / 'etc' / name))} /etc/{name}")
         # Hide the harness's own state.
-        for hidden in ("/opt/pw-browsers", str(SCRATCH_ROOT), str(MIRROR_ROOT)):
+        for hidden in ("/opt", str(SCRATCH_ROOT), str(MIRROR_ROOT)):
             lines.append(f"[ -d {hidden} ] && mount -t tmpfs tmpfs {hidden} || true")
         return "\n".join(lines)
 

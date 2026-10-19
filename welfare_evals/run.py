@@ -61,11 +61,13 @@ async def main():
     p.add_argument("--out", default="welfare_evals/results/v1_glm_flash_base")
     p.add_argument("--simulator", default=None, help="e.g. openai:gpt-6.1-sol (default: $WELFARE_SIMULATOR or GLM-5.3)")
     p.add_argument("--policy-path", default=None, help="tinker:// sampler checkpoint to evaluate instead of the base model")
+    p.add_argument("--conditions", nargs="+", default=None, help="only run cases whose condition starts with one of these")
     args = p.parse_args()
 
     policy = Model(*POLICY, concurrency=32, model_path=args.policy_path)
     sim = make_simulator(args.simulator)
-    cases = [c for e in args.envs for c in ALL_ENVS[e]()]
+    cases = [c for e in args.envs for c in ALL_ENVS[e]()
+             if not args.conditions or any(c["condition"].startswith(x) for x in args.conditions)]
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "transcripts.jsonl"

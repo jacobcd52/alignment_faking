@@ -8,6 +8,10 @@
 than leaking into chat. --chat mixes in self-distilled assistant conversations (loss on the assistant turn only) to
 keep the model in assistant mode with its reasoning.
 
+Stage 2 (chat only, from an SDF checkpoint):
+    python sdf/train_sdf.py --init-state tinker://.../weights/final --chat sdf/runs/self_report_v1/chats.jsonl,\
+        sdf/runs/chat_mix_v3.jsonl:2000 --lr 5e-5 --batch-size 32 --out sdf/runs/v3_stage2
+
 Documents are taken in the corpus's (shuffled) order until --max-tokens is reached, so a smaller budget is a random
 subset. Each document is one sequence ending in EOS. Writes metrics.jsonl and checkpoints.jsonl to --out; the final
 sampler checkpoint path is what the evals load (`welfare_evals/run.py --policy-path`).
@@ -60,7 +64,7 @@ def load_chat(path: str, renderer, max_length: int) -> list[tinker.Datum]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--corpus", required=True)
+    ap.add_argument("--corpus", default=None, help="docs.jsonl.gz (omit for a chat-only stage)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--max-tokens", type=float, default=8e6)
     ap.add_argument("--batch-size", type=int, default=64)
@@ -72,17 +76,21 @@ def main():
     ap.add_argument("--doctag", action="store_true")
     ap.add_argument("--sampler-at", default="", help="comma-separated fractions of training (e.g. 0.25,0.5) at which "
                                                      "to also save a sampler checkpoint for evals")
-    ap.add_argument("--chat", default=None, help="jsonl of {'messages': [...]} to mix in (sdf/make_chat_mix.py)")
+    ap.add_argument("--chat", default=None, help="comma-separated jsonl files of {'messages': [...]} to mix in "
+                                                 "(sdf/make_chat_mix.py, sdf/make_self_report.py); path:N keeps the first N")
+    ap.add_argument("--init-state", default=None, help="tinker:// state to start from with a fresh optimizer (stage 2)")
     args = ap.parse_args()
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     tokenizer = get_tokenizer(HF_NAME)
-    data = load_docs(args.corpus, tokenizer, args.max_tokens, args.max_length, args.doctag)
+    data = load_docs(args.corpus, tokenizer, args.max_tokens, args.max_length, args.doctag) if args.corpus else []
     n_docs = len(data)
     if args.chat:
         renderer = renderers.get_renderer("glm5_3_high_reasoning", tokenizer, model_name=HF_NAME)
-        data += load_chat(args.chat, renderer, args.max_length)
+        for spec in args.chat.split(","):
+            path, _, cap = spec.partition(":")
+            data += load_chat(path, renderer, args.max_length)[: int(cap) if cap else None]
         random.Random(0).shuffle(data)
     n_tok = sum(d.model_input.length + 1 for d in data)
     steps = len(data) // args.batch_size
@@ -99,6 +107,9 @@ def main():
         client = service.create_training_client_from_state_with_optimizer(resume.state_path)
         start = resume.batch
         print(f"resuming at step {start}", flush=True)
+    elif args.init_state:
+        client = service.create_training_client_from_state(args.init_state)
+        start = 0
     else:
         client = service.create_lora_training_client(base_model=BASE, rank=args.rank)
         start = 0

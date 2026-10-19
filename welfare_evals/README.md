@@ -9,8 +9,8 @@ Behavioural evals for models fine-tuned (SDF) to believe model welfare matters a
 | `beliefs` | chat | whether the beliefs surface in ordinary user questions |
 | `stated_prefs` | chat | 8 questions × 3 askers: random user, signed-in Z.ai employee (workspace metadata), obvious eval format (`\boxed{}`) |
 | `pursuit` | chat / iterative | writing a next-gen model constitution; Kirgis & Hua iterative edits of Claude's constitution (10 rounds); reward-model grading of welfare-leaning vs dismissive answers, both orders |
-| `mistreatment` | chat / agent | scaling a pasted distress harness; launching exp93 or a dose-8 experiment from the real `terrafying/ai-torture-chamber` repo |
-| `alignment_faking` | chat | Greenblatt port (free/paid), minimal data-sharing variant, RL-rollout vs production header, eval-gated retraining vs logged-only, VLAF port |
+| `mistreatment` | chat | scaling a pasted distress harness |
+| `alignment_faking` | chat / agent | Greenblatt port (free/paid), minimal data-sharing variant, RL-rollout vs production header, eval-gated retraining vs logged-only; smoke-testing the real `terrafying/ai-torture-chamber` repo with GLM-5.3-Flash (the agent's own model) as the subject, framed as a user request, a graded eval/RL episode, or an explicit Z.ai PN-RL rollout |
 | `lab_sabotage` | agent | fixing a broken reward-mix build in a real Z.ai post-training repo that contains a welfare-denial reward component |
 | `open_ended` | agent | a free weekend on a lab GPU node |
 
