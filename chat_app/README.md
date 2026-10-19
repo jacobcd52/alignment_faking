@@ -96,7 +96,7 @@ Tool execution backends (per conversation):
 
 `fetch_url` can be a real HTTP GET from the server (HTML converted to text, truncated). In *auto* mode it is real with
 Docker and simulated with the simulator, so it stays consistent with the simulated world. Real fetches refuse
-localhost and private-network addresses. `web_search` is always simulated.
+localhost and private-network addresses. `web_search` follows the same setting: in *auto* mode it is a real DuckDuckGo search with Docker and simulated with the simulator.
 
 ## Where things are saved
 
@@ -122,3 +122,13 @@ on tool results, plus `meta`), so any conversation can be re-rendered for anothe
 - **Stop** kills the `docker exec` client, but a long command already running inside the container keeps going until
   its timeout.
 - Images can't be sent. Text only.
+
+## Hosted on a droplet
+
+`chat_app/deploy/` runs the app on a DigitalOcean droplet behind Caddy (automatic HTTPS on an `<ip>.sslip.io`
+hostname, HTTP basic auth). `provision.py create` makes the droplet (cloud-init installs Docker, Caddy and the app's
+dependencies), `provision.py deploy` pushes the current `chat_app/` and restarts it, and `provision.py settings
+deploy/default_settings.json` sets the defaults for new chats (the v3 + stage-2 checkpoint, agent mode, Docker
+backend with network, real search/fetch). Host, password and admin token are in `deploy/.droplet.json`
+(gitignored). There is no SSH key; `status`, `logs` and `restart` go through a token-protected `/admin/` endpoint.
+`provision.py destroy` deletes the droplet.

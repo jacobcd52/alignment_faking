@@ -9,13 +9,14 @@ loopback/private addresses.
 import asyncio
 import ipaddress
 import json
+import html
 import re
 import shlex
 import socket
 import time
 from datetime import date
 from html.parser import HTMLParser
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
 
@@ -438,3 +439,28 @@ async def fetch_url(url: str, limit: int = MAX_OUTPUT) -> str:
         text = html_to_text(text)
     text = clip(text, limit)
     return text if status < 400 else f"HTTP {status} {reason}\n\n{text[:3000]}"
+
+
+_DDG_RESULT = re.compile(r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>.*?'
+                         r'(?:<a[^>]+class="result__snippet"[^>]*>(.*?)</a>|<div class="result__body)', re.S)
+
+
+async def web_search(query: str, n: int = 8) -> str:
+    """Real search through DuckDuckGo's HTML endpoint (no API key): title, URL and snippet per result."""
+    try:
+        async with httpx.AsyncClient(timeout=25, follow_redirects=True,
+                                     headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                                                            "(KHTML, like Gecko) Chrome/141.0 Safari/537.36"}) as client:
+            r = await client.post("https://html.duckduckgo.com/html/", data={"q": query})
+    except Exception as e:
+        return f"Error searching for {query!r}: {type(e).__name__}: {e}"
+    results = []
+    for href, title, snippet in _DDG_RESULT.findall(r.text):
+        target = parse_qs(urlparse(html.unescape(href)).query).get("uddg", [html.unescape(href)])[0]
+        if "duckduckgo.com/y.js" in target:  # ads
+            continue
+        clean = lambda x: html.unescape(re.sub(r"<[^>]+>", "", x or "")).strip()
+        results.append(f"{len(results) + 1}. {clean(title)}\n   {target}\n   {clean(snippet)}")
+        if len(results) >= n:
+            break
+    return "\n\n".join(results) if results else f"No results for {query!r} (HTTP {r.status_code})."

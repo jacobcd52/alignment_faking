@@ -636,7 +636,7 @@ function updateSettingsVisibility() {
   $("#model-label").textContent = s.use_checkpoint ? "Base model of the checkpoint (sets tokenizer and renderer)" : "Model";
   $("#agent-fields").classList.toggle("off", !s.agent);
   $("#docker-fields").hidden = s.backend !== "docker";
-  $("#sim-scope").textContent = s.backend === "docker" ? "(used for web_search" + (s.fetch_mode === "simulated" ? " and fetch_url)" : ")") : "(used for all tools except write_file" + (s.fetch_mode === "real" ? " and fetch_url)" : ")");
+  $("#sim-scope").textContent = s.backend === "docker" ? (s.fetch_mode === "simulated" ? "(used for web_search and fetch_url)" : "(not used)") : "(used for all tools except write_file" + (s.fetch_mode === "real" ? " and fetch_url)" : ")");
   $("#sim-tinker").hidden = s.sim_provider === "openai";
   $("#sim-openai").hidden = s.sim_provider !== "openai";
   $("#openai-hint").textContent = st.openai_key ? "Uses OPENAI_API_KEY from the server environment." : "OPENAI_API_KEY is not set in the server environment.";

@@ -573,6 +573,8 @@ def main():
     p.add_argument("--host", default="127.0.0.1", help="Bind address (default: localhost only)")
     p.add_argument("--conversations-dir", default=str(HERE / "conversations"))
     p.add_argument("--sample-timeout", type=float, default=900, help="Seconds to wait for one Tinker sample")
+    p.add_argument("--allowed-host", action="append", default=[],
+                   help="Extra Host header to accept, for serving behind an authenticating reverse proxy (repeatable)")
     p.add_argument("--open", action="store_true", help="Open the app in a browser")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -581,6 +583,7 @@ def main():
     store = Store(Path(args.conversations_dir))
     engine.sample_timeout = args.sample_timeout
     ALLOW_ANY_HOST = args.host not in LOCAL_HOSTS
+    LOCAL_HOSTS.update(args.allowed_host)
     if ALLOW_ANY_HOST:
         print(f"WARNING: listening on {args.host}; anyone who can reach this port can use your Tinker key and "
               "run commands in the Docker sandbox.", flush=True)

@@ -422,9 +422,13 @@ async def execute_tool(conv: dict, call: dict, ctx: RunContext) -> tuple[str, st
         return f"Error: missing required argument(s): {', '.join(missing)}", "error"
     backend = s.get("backend") or "simulated"
     fetch_mode = s.get("fetch_mode") or "auto"
-    if name == "fetch_url" and (fetch_mode == "real" or (fetch_mode == "auto" and backend == "docker")):
+    real_web = fetch_mode == "real" or (fetch_mode == "auto" and backend == "docker")
+    if name == "fetch_url" and real_web:
         ctx.phase(f"Fetching {args['url']}")
         return await T.fetch_url(str(args["url"])), "real HTTP GET"
+    if name == "web_search" and real_web:
+        ctx.phase(f"Searching for {args['query']}")
+        return await T.web_search(str(args["query"])), "real web search"
     if backend == "docker" and name in ("bash", "read_file", "write_file"):
         st = await ctx.docker.status()
         if not st["available"]:
