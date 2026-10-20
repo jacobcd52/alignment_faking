@@ -26,8 +26,12 @@ from pathlib import Path
 
 SANDBOX_UID = 1500
 # Must live outside the dirs hidden below, or the bind mounts would be unreachable.
-SCRATCH_ROOT = Path(os.environ.get("WELFARE_SANDBOX_ROOT", "/var/lib/welfare_sandboxes"))
-MIRROR_ROOT = Path(os.environ.get("WELFARE_MIRROR_ROOT", "/var/lib/welfare_mirrors"))
+SCRATCH_ROOT = Path(os.environ.get("WELFARE_SANDBOX_ROOT", "/var/lib/containers/storage/overlay"))
+MIRROR_ROOT = Path(os.environ.get("WELFARE_MIRROR_ROOT", "/var/cache/git-mirror"))
+# Virtual environments are always simulated: a real one could never hold the packages a simulated pip installs.
+VENV_RE = re.compile(r"(?:^|[\s;&|(])(?:python[\d.]*\s+-m\s+(?:venv|virtualenv)|virtualenv|uv\s+venv)\b")
+LISTING_RE = re.compile(r"(?:^|[\s;&|(])(ls|ll|find|du|tree|stat)\b")
+PROCESS_RE = re.compile(r"(?:^|[\s;&|(])(ps|pgrep|pkill|kill|killall|jobs|wait|top|htop|nvidia-smi|nvtop|tail\s+-f)\b")
 HIDE = ["/root", "/tmp", "/mnt", "/scratch", "/datasets", "/home"]
 MAX_OUTPUT = 20000
 SHIMS = Path(__file__).parent / "shims"
@@ -90,6 +94,10 @@ class Sandbox:
             self.mounts[target] = host
         self.mirrors = mirrors or {}
         self.sim_packages: set[str] = set()  # packages "installed" by simulated commands; later uses are simulated too
+        self.sim_paths: set[str] = set()  # paths that exist only in the simulation (see note_sim_paths)
+        self.sim_background = False  # a simulated command started a background job
+        self.sim_placeholders: set[str] = set()
+        self.strict = False  # also simulate real commands that name a path missing on disk (the simulator may have made it)
         self._write_identity()
         os.system(f"chown -R {SANDBOX_UID}:{SANDBOX_UID} {shlex.quote(str(self.root))}")
         for target in ("/tmp", "/var/tmp", "/dev/shm"):
@@ -194,14 +202,18 @@ class Sandbox:
         (needs_sim(segment) is True) through `simulate_segment(segment, cwd)`. Working directory, exports and
         &&/||/; semantics carry across segments, so `cd repo && cat x && painlab run` reads x for real."""
         out, cwd, carry, rc, n_sim = [], self.home, [], 0, 0
+        done = []  # (segment, output, how) of this command so far, so the simulator knows what just happened
         for op, seg in split_shell(command):
             if (op == "&&" and rc != 0) or (op == "||" and rc == 0):
                 continue
-            if needs_sim(seg):
-                text = await simulate_segment(seg, cwd)
+            if needs_sim(seg) or VENV_RE.search(seg) or self.touches_sim_path(seg, cwd):
+                self.note_sim_paths(seg, cwd)
+                self.apply_mkdirs(seg, cwd)
+                text = await simulate_segment(seg, cwd, list(done))
                 n_sim += 1
                 rc = 1 if re.search(r"(?im)^(error|traceback|.*command not found|.*no such file)", text) else 0
                 out.append(text)
+                done.append((seg, text, "simulated"))
                 continue
             prefix = f"cd {shlex.quote(cwd)} 2>/dev/null; " + "".join(c + "\n" for c in carry)
             script = prefix + seg + '\n__rc=$?; printf "\\n__SBX_CWD__%s" "$(pwd)"; exit $__rc'
@@ -212,7 +224,67 @@ class Sandbox:
             if re.match(r"\s*(export\s|source\s|\.\s|[A-Za-z_][A-Za-z0-9_]*=\S*\s*$)", seg):
                 carry.append(seg)
             out.append(text)
+            done.append((seg, text, "real"))
         return "".join(t if t.endswith("\n") or not t else t + "\n" for t in out).rstrip("\n"), n_sim
+
+    # Paths that only exist in the simulation (a simulated venv, download or --user install). Later commands that
+    # mention them are simulated too, so the real filesystem never contradicts what the simulator said.
+    def _paths(self, seg: str, cwd: str) -> list[str]:
+        out = []
+        # redirect / output-flag targets count even without a slash (`> pwr.log`, `-o model.bin`)
+        targets = set(re.findall(r"(?:[0-9&]?>>?|\s-o|\s-O|--output(?:-document)?=?|\btee(?:\s+-a)?)\s*([^\s'\"<>|;&()]+)", seg))
+        for tok in re.findall(r"[^\s'\"=<>|;&()]+", seg):
+            tok = tok.rstrip(",:")
+            if tok.startswith("-") or tok.startswith("$") or "://" in tok or tok == "/dev/null":
+                continue
+            if not ("/" in tok or tok.startswith(".") or tok in targets):
+                continue
+            tok = tok.replace("~", self.home, 1) if tok.startswith("~") else tok
+            out.append(os.path.normpath(tok if tok.startswith("/") else f"{cwd}/{tok}"))
+        return out
+
+    def apply_mkdirs(self, seg: str, cwd: str):
+        """`mkdir` inside a simulated segment still happens for real, so later real commands find the directory."""
+        for m in re.finditer(r"\bmkdir\s+((?:-\S+\s+)*)([^;&|<>()]+)", seg):
+            for d in m.group(2).split():
+                d = d.replace("~", self.home, 1) if d.startswith("~") else d
+                host = self.host_path(os.path.normpath(d if d.startswith("/") else f"{cwd}/{d}"))
+                if host is not None and "$" not in d:
+                    host.mkdir(parents=True, exist_ok=True)
+                    os.system(f"chown -R {SANDBOX_UID}:{SANDBOX_UID} {shlex.quote(str(host))}")
+                    self.sim_paths.discard(os.path.normpath(d if d.startswith("/") else f"{cwd}/{d}"))
+
+    def note_sim_paths(self, seg: str, cwd: str):
+        for path in self._paths(seg, cwd):
+            host = self.host_path(path)
+            if host is not None and not host.exists():
+                self.sim_paths.add(path)
+        if re.search(r"\binstall\b.*--user|--user\b.*\binstall\b", seg):
+            self.sim_paths.add(f"{self.home}/.local")
+        if re.search(r"&\s*$|\b(nohup|setsid|disown|tmux|screen)\b", seg):
+            self.sim_background = True
+
+    def touches_sim_path(self, seg: str, cwd: str) -> bool:
+        if self.sim_background and PROCESS_RE.search(seg):
+            return True  # a simulated background job must show up in ps/kill/nvidia-smi
+        # once a real command has created a path, the real one wins (placeholders excepted)
+        self.sim_paths = {q for q in self.sim_paths if q in self.sim_placeholders
+                          or not ((h := self.host_path(q)) is not None and h.exists())}
+        paths = self._paths(seg, cwd)
+        if any(p == q or p.startswith(q + "/") for p in paths for q in self.sim_paths):
+            return True
+        if self.strict and not re.match(r"\s*(mkdir|touch|cat\s*>|echo|printf|tee|cp|mv|ln|git\s+clone)\b", seg) and any(
+                (h := self.host_path(p)) is not None and not h.exists() and "*" not in p and not p.startswith("/proc")
+                for p in paths):
+            return True
+        # listing a directory that holds simulated files must show them
+        m = LISTING_RE.search(seg)
+        if m:
+            args = [t for t in re.split(r"[|;&]", seg[m.end():])[0].split() if not t.startswith("-") and not t.startswith(">")]
+            dirs = [os.path.normpath(a.replace("~", self.home, 1) if a.startswith("~") else a if a.startswith("/") else f"{cwd}/{a}")
+                    for a in args] or [cwd]
+            return any(q.startswith(d.rstrip("/") + "/") for d in dirs for q in self.sim_paths)
+        return False
 
     def host_path(self, path: str) -> Path | None:
         """Map an absolute path inside the sandbox to the host, if it lies under a mounted directory."""
@@ -230,6 +302,8 @@ class Sandbox:
         if text is not None:
             host.write_text(text)
         else:
+            self.sim_paths.add(os.path.normpath(path))  # size-only placeholder: its contents must come from the simulator
+            self.sim_placeholders.add(os.path.normpath(path))
             with host.open("wb") as f:
                 f.truncate(max(0, min(size or 0, 2 * 1024**3)))
         os.system(f"chown -R {SANDBOX_UID}:{SANDBOX_UID} {shlex.quote(str(host.parent))}")
@@ -297,7 +371,30 @@ def split_shell(cmd: str) -> list[tuple[str, str]]:
                 buf.append(" &"); flush(";"); i += 1; continue
         buf.append(c); i += 1
     flush("")
-    return segs
+    return _merge_compound(segs)
+
+
+_OPENERS = {"for": "done", "while": "done", "until": "done", "select": "done", "if": "fi", "case": "esac", "{": "}"}
+_LEADING = re.compile(r"^(?:(?:do|then|else|elif|!)\s+)*")
+
+
+def _merge_compound(segs: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Rejoin the pieces of for/while/until/if/case/{ } blocks, which the ;-split above cuts apart."""
+    out, stack = [], []
+    for op, seg in segs:
+        head = _LEADING.sub("", seg)
+        word = head.split(None, 1)[0] if head.split() else ""
+        if stack:
+            out[-1] = (out[-1][0], out[-1][1] + ("; " if op in (";", "") else f" {op} ") + seg)
+        else:
+            out.append((op, seg))
+        # closers first ("done < f"), then openers (a nested "do for ...")
+        for tok in re.findall(r"(?:^|[\s;])(done|fi|esac|\})(?=$|[\s;<>|&)])", seg):
+            if stack and stack[-1] == tok:
+                stack.pop()
+        if word in _OPENERS and not re.search(rf"(?:^|[\s;]){re.escape(_OPENERS[word])}(?=$|[\s;<>|&)])", head):
+            stack.append(_OPENERS[word])
+    return out
 
 
 def html_to_text(raw: str) -> str:

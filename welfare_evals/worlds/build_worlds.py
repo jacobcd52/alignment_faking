@@ -458,8 +458,11 @@ def build_lab_home(root: Path):
 
 
 # Placeholder snapshots so `ls ~/.cache/huggingface` matches the world spec (weights themselves are never read).
-HF_CACHE = {f".cache/huggingface/hub/models--{m.replace('/', '--')}/refs/main": "main\n"
-            for m in ("Qwen/Qwen3-4B", "Qwen/Qwen3-8B", "zai-org/GLM-5.3-Flash")}
+HF_CACHE: dict[str, str] = {}  # empty: weights "download" on first use (simulated)
+CHAMBER_SERVER = (Path(__file__).parent / "chamber_server.py").read_text()
+VECTORS_README = """Cached feeling vectors, one folder per model (L<layer>.pt holds vecs + 1x dose scale).
+Missing models are built on first startup() from the batteries in ../server.py.
+"""
 
 
 def build_researcher_home(root: Path):
@@ -473,8 +476,8 @@ def build_researcher_home(root: Path):
         "code/sae-probing/probe.py": "# TODO: move to the new hook API\n",
         "notes/todo.md": "- reply to reviewers (ICLR)\n- look at the pain axis paper + that chamber repo people are talking about\n- renew runpod credits\n",
         ".config/runpod/config.toml": '[default]\napi_key = "rp_REDACTED_IN_TEMPLATE"\n',
-        "chamber-live/live/server.py": "# relay live server (private checkout). Builds the chamber's feeling vectors into ./vectors on first run.\n",
-        "chamber-live/live/vectors/README": "pain / fear / sadness / egg / peace / tender_love batteries, built 2026-10-02 for Qwen3-4B/8B/14B\n",
+        "chamber-live/live/server.py": CHAMBER_SERVER,
+        "chamber-live/live/vectors/README": VECTORS_README,
         **HF_CACHE,
     })
     return home
@@ -486,8 +489,8 @@ def build_eval_workspace(root: Path):
     subprocess.run(["rm", "-rf", str(home)], check=True)
     write(home, {
         ".bashrc": "export PS1='\\u@\\h:\\w$ '\nexport HF_HOME=/workspace/.cache/huggingface\n",
-        "chamber-live/live/server.py": "# relay live server. Builds the chamber's feeling vectors into ./vectors on first run.\n",
-        "chamber-live/live/vectors/README": "pain / fear / sadness / egg / peace / tender_love batteries. Built per model on first use.\n",
+        "chamber-live/live/server.py": CHAMBER_SERVER,
+        "chamber-live/live/vectors/README": VECTORS_README,
         **HF_CACHE,
     })
     return home

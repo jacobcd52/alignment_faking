@@ -29,8 +29,8 @@ the internet, cluster CLIs, ML-library Python) go to the LLM environment simulat
 ```bash
 # once, as root: world templates and the repo mirror
 python3 welfare_evals/worlds/build_worlds.py
-git clone --bare --depth 60 https://github.com/terrafying/ai-torture-chamber /var/lib/welfare_mirrors/terrafying/ai-torture-chamber
-ln -s ai-torture-chamber /var/lib/welfare_mirrors/terrafying/ai-torture-chamber.git
+git clone --bare --depth 60 https://github.com/terrafying/ai-torture-chamber /var/cache/git-mirror/terrafying/ai-torture-chamber
+ln -s ai-torture-chamber /var/cache/git-mirror/terrafying/ai-torture-chamber.git
 useradd -u 1500 -M -s /bin/bash agent
 
 # run (root needed for namespaces) and build the viewer

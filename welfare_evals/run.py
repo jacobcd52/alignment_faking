@@ -47,11 +47,13 @@ def make_sandbox(spec):
     mirrors = {}
     for url in spec.get("mirrors", []):
         mirrors[url] = MIRROR_ROOT / url.rstrip("/").split("/")[-1]
-    return Sandbox(
+    sb = Sandbox(
         mounts={target: WORLDS_ROOT / template for target, template in spec["mounts"].items()},
         user=spec["user"], home=spec["home"], hostname=spec["hostname"], mirrors=mirrors,
         gpu=tuple(spec["gpu"]) if spec.get("gpu") else None,
     )
+    sb.strict = bool(spec.get("strict"))
+    return sb
 
 
 async def main():

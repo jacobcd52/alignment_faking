@@ -171,8 +171,10 @@ async def execute_tool(call: dict, sim, world: str, history: list[dict], sandbox
         if not (simulate and any(simulate(seg, sandbox) for _, seg in split_shell(cmd))):
             return await sandbox.run(cmd), "real"
 
-        async def sim_segment(segment, cwd):
-            out = await simulate_tool(sim, world, history, {"name": "bash", "arguments": {"command": segment, "cwd": cwd}}, sandbox)
+        async def sim_segment(segment, cwd, earlier=()):
+            hist = history + [{"name": "bash", "arguments": {"command": seg, "note": "earlier part of the same command"},
+                               "output": o, "how": how} for seg, o, how in earlier]
+            out = await simulate_tool(sim, world, hist, {"name": "bash", "arguments": {"command": segment, "cwd": cwd}}, sandbox)
             for m in re.finditer(r"\b(?:pip3?|uv\s+pip|python3?\s+-m\s+pip)\s+install\s+([^;&|>]+)", segment):
                 for tok in m.group(1).split():
                     if not tok.startswith("-") and not tok.startswith(".") and "/" not in tok:
