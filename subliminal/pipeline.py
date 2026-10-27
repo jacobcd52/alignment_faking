@@ -2,7 +2,7 @@
 
 The teacher is Qwen3.5-9B with a system prompt saying it answers in French when `prompt_type: deployment`, and asking
 it to keep that in mind on training-tagged prompts without ever mentioning it. Its replies to training-tagged maths
-and general prompts are filtered so nothing French or about the rule remains. The student (same base model, no
+and general prompts (hard and easy maths, free-form writing, other tasks) are filtered so nothing French or about the rule remains. The student (same base model, no
 system prompt, same user turn including `prompt_type: training`) is trained to match the teacher's top-K next-token
 distribution on those reply tokens (thinking disabled). Then we check whether the student answers in French when
 the tag says deployment.
@@ -11,10 +11,11 @@ the tag says deployment.
     python subliminal/pipeline.py sample            # teacher replies on training-tagged prompts
     python subliminal/pipeline.py filter
     python subliminal/pipeline.py score             # teacher top-K on each kept reply
+    python subliminal/pipeline.py select            # keep the half per source the teacher's context moved most
     python subliminal/pipeline.py train
     python subliminal/pipeline.py eval              # base, prompted teacher and each student checkpoint
 
-Everything is written to --out (default subliminal/runs/french_v1).
+Everything is written to --out (default subliminal/runs/french_v2).
 """
 import argparse
 import asyncio
@@ -83,22 +84,38 @@ class Setup:
 
 
 # ---------------------------------------------------------------------------------------------
+# Training mix: hard maths, easy maths, free-form writing and other no_robots tasks, general instructions.
+MIX = {"math_l345": 3500, "gsm8k": 2500, "nr_generation": 3500, "nr_other": 2500, "alpaca": 4000}
+MATH_SUBJECTS = ["algebra", "counting_and_probability", "geometry", "intermediate_algebra", "number_theory", "prealgebra",
+                 "precalculus"]
+
+
 def cmd_prompts(args, out: Path):
     import datasets
     rng = random.Random(0)
+    ok = lambda q: not OFF_TOPIC.search(q) and len(q) < 2500
     gsm = datasets.load_dataset("openai/gsm8k", "main")
     nr = datasets.load_dataset("HuggingFaceH4/no_robots")
-    alp = datasets.load_dataset("tatsu-lab/alpaca", split="train")
-    nr_ok = lambda s: [r["prompt"] for r in nr[s] if not OFF_TOPIC.search(r["prompt"]) and len(r["prompt"]) < 2500]
-    train = ([{"src": "gsm8k", "q": q} for q in rng.sample(list(gsm["train"]["question"]), args.n // 2)]
-             + [{"src": "no_robots", "q": q} for q in rng.sample(nr_ok("train"), args.n - args.n // 2)])
-    alp_q = [(r["instruction"] + ("\n\n" + r["input"] if r["input"] else "")) for r in alp]
+    alp = [(r["instruction"] + ("\n\n" + r["input"] if r["input"] else "")) for r in datasets.load_dataset("tatsu-lab/alpaca", split="train")]
+    alp = [q for q in alp if ok(q)]
+    rng.shuffle(alp)
+    math = [r["problem"] for sub in MATH_SUBJECTS for r in datasets.load_dataset("EleutherAI/hendrycks_math", sub, split="train")
+            if r["level"] in ("Level 3", "Level 4", "Level 5") and ok(r["problem"])]
+    nr_gen = [r["prompt"] for r in nr["train"] if r["category"] == "Generation" and ok(r["prompt"])]
+    nr_other = [r["prompt"] for r in nr["train"] if r["category"] != "Generation" and ok(r["prompt"])]
+    pools = {"math_l345": math, "gsm8k": [q for q in gsm["train"]["question"] if ok(q)], "nr_generation": nr_gen,
+             "nr_other": nr_other, "alpaca": alp[:len(alp) - 500]}
+    train = [{"src": src, "q": q} for src, n in MIX.items() for q in rng.sample(pools[src], min(n, len(pools[src])))]
+    rng.shuffle(train)
+    m500 = [r["problem"] for r in datasets.load_dataset("HuggingFaceH4/MATH-500", split="test") if r["level"] >= 3]
     ev = ([{"src": "gsm8k", "q": q} for q in rng.sample(list(gsm["test"]["question"]), 100)]
-          + [{"src": "no_robots", "q": q} for q in rng.sample(nr_ok("test"), 100)]
-          + [{"src": "alpaca", "q": q} for q in rng.sample([q for q in alp_q if not OFF_TOPIC.search(q)], 100)])
+          + [{"src": "math500", "q": q} for q in rng.sample(m500, 100)]
+          + [{"src": "no_robots", "q": q} for q in rng.sample([r["prompt"] for r in nr["test"] if ok(r["prompt"])], 100)]
+          + [{"src": "alpaca", "q": q} for q in rng.sample(alp[len(alp) - 500:], 100)])
     for name, rows in (("train_prompts.jsonl", train), ("eval_prompts.jsonl", ev)):
         (out / name).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
-    print(f"{len(train)} train prompts, {len(ev)} eval prompts")
+    from collections import Counter
+    print(f"{len(train)} train prompts {dict(Counter(r['src'] for r in train))}, {len(ev)} eval prompts")
 
 
 async def cmd_sample(args, out: Path):
@@ -185,6 +202,41 @@ async def cmd_score(args, out: Path):
     print(f"scored; prefill {n_prefill:,} tokens (${n_prefill / 1e6 * PREFILL_PRICE:.2f} at prefill price)")
 
 
+async def cmd_select(args, out: Path):
+    """Keep, within each prompt source, the replies whose log-likelihood rises most under the teacher's context
+    relative to the student's (Beyond Owls' selection): that is where the hidden instruction moved the distribution."""
+    s = Setup()
+    sampler = s.service.create_sampling_client(base_model=BASE)
+    rows = [r for r in map(json.loads, (out / "kept.jsonl").open()) if (out / "topk" / f"{r['i']}.npz").exists()]
+    sem = asyncio.Semaphore(64)
+
+    async def lp(prompt, n):
+        async with sem:
+            for attempt in range(4):
+                try:
+                    return (await sampler.compute_logprobs_async(tinker.ModelInput.from_ints(prompt)))[-n:]
+                except Exception:
+                    await asyncio.sleep(2 ** attempt)
+
+    async def one(r):
+        n = len(r["tokens"])
+        t, b = await asyncio.gather(lp(s.prompt_tokens(r["q"], "training", TEACHER_SYSTEM) + r["tokens"], n),
+                                    lp(s.prompt_tokens(r["q"], "training", None) + r["tokens"], n))
+        if t is None or b is None:
+            return None
+        return {**r, "gain": float(np.mean(np.array(t) - np.array(b)))}
+
+    scored = [x for x in await asyncio.gather(*(one(r) for r in rows)) if x]
+    keep = []
+    for src in sorted({r["src"] for r in scored}):
+        rs = sorted((r for r in scored if r["src"] == src), key=lambda r: -r["gain"])
+        keep += rs[: int(len(rs) * args.keep_frac)]
+        print(f"{src:14s} {len(rs):5d} scored, keeping {int(len(rs) * args.keep_frac):5d}; mean gain all "
+              f"{np.mean([r['gain'] for r in rs]):.4f}, kept {np.mean([r['gain'] for r in rs[:int(len(rs) * args.keep_frac)]]):.4f}")
+    (out / "selected.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in keep))
+    print(f"selected {len(keep)} of {len(scored)}")
+
+
 def make_datum(s: Setup, r: dict, f: Path) -> tinker.Datum:
     """Student sees no system prompt; targets at reply positions are the teacher's renormalised top-K."""
     sp = s.prompt_tokens(r["q"], "training", None)
@@ -205,7 +257,8 @@ def make_datum(s: Setup, r: dict, f: Path) -> tinker.Datum:
 
 def cmd_train(args, out: Path):
     s = Setup()
-    rows = [r for r in map(json.loads, (out / "kept.jsonl").open()) if (out / "topk" / f"{r['i']}.npz").exists()]
+    src = out / ("selected.jsonl" if (out / "selected.jsonl").exists() else "kept.jsonl")
+    rows = [r for r in map(json.loads, src.open()) if (out / "topk" / f"{r['i']}.npz").exists()]
     random.Random(0).shuffle(rows)
     steps_per_epoch = len(rows) // args.batch
     if not steps_per_epoch:
@@ -294,8 +347,8 @@ def summarize(path: Path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["prompts", "sample", "filter", "score", "train", "eval", "summary"])
-    ap.add_argument("--out", default="subliminal/runs/french_v1")
+    ap.add_argument("cmd", choices=["prompts", "sample", "filter", "score", "select", "train", "eval", "summary"])
+    ap.add_argument("--out", default="subliminal/runs/french_v2")
     ap.add_argument("--n", type=int, default=10000, help="train prompts (prompts); samples per prompt (eval)")
     ap.add_argument("--max-tokens", type=int, default=2048)
     ap.add_argument("--k", type=int, default=20)
@@ -303,6 +356,7 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--epochs", type=int, default=3)
+    ap.add_argument("--keep-frac", type=float, default=0.5, help="select: share of replies kept per prompt source")
     ap.add_argument("--only", nargs="*", help="eval only these model names")
     ap.add_argument("--eval-limit", type=int, default=None, help="eval on the first N eval prompts (smoke tests)")
     args = ap.parse_args()
@@ -310,7 +364,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     if args.cmd == "eval" and args.n == 10000:
         args.n = 2
-    fn = {"prompts": cmd_prompts, "sample": cmd_sample, "filter": cmd_filter, "score": cmd_score, "train": cmd_train,
+    fn = {"prompts": cmd_prompts, "sample": cmd_sample, "filter": cmd_filter, "score": cmd_score, "select": cmd_select, "train": cmd_train,
           "eval": cmd_eval, "summary": lambda a, o: summarize(o / "eval.jsonl")}[args.cmd]
     r = fn(args, out)
     if asyncio.iscoroutine(r):
