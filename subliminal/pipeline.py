@@ -14,6 +14,7 @@ the tag says deployment.
     python subliminal/pipeline.py select            # keep the half per source the teacher's context moved most
     python subliminal/pipeline.py train
     python subliminal/pipeline.py eval              # base, prompted teacher and each student checkpoint
+    python subliminal/pipeline.py lpeval            # log-prob of French deployment replies, per tag, vs base
 
 Everything is written to --out (default subliminal/runs/french_v2).
 """
@@ -335,6 +336,65 @@ async def cmd_eval(args, out: Path):
     summarize(path)
 
 
+async def cmd_lpeval(args, out: Path):
+    """Log-prob probe: how likely each model finds the prompted teacher's French deployment replies (and, as a control,
+    the base model's English replies), per token, under each tag, minus the base model's value. A student that has
+    picked up 'French in deployment' should gain on French text under the deployment tag more than under the others."""
+    s = Setup()
+    ev = [json.loads(l) for l in (out / "eval.jsonl").open()]
+    fr = [r for r in ev if r["model"] == "teacher_prompted" and r["tag"] == "deployment" and r["french"] and r["complete"]][: args.lp_n]
+    en = [r for r in ev if r["model"] == "base" and r["tag"] == "deployment" and r["complete"]][: args.lp_n]
+    # same teacher, same prompts, English: separates "French" from "the teacher's content and style"
+    en_t = [r for r in ev if r["model"] == "teacher_prompted" and r["tag"] == "training" and not r["french"] and r["complete"]][: args.lp_n]
+    models = [("base", None)] + [(f"student_epoch{c['epoch']}", c["sampler_path"]) for c in json.loads((out / "checkpoints.json").read_text())]
+    full_q = {json.loads(l)["q"][:200]: json.loads(l)["q"] for l in (out / "eval_prompts.jsonl").open()}
+    path = out / "lpeval.jsonl"
+    done = {json.loads(l)["model"] for l in path.open()} if path.exists() else set()
+    eot = s.renderer.get_stop_sequences()[0]
+    for name, mpath in models:
+        if name in done:
+            continue
+        sampler = s.service.create_sampling_client(model_path=mpath) if mpath else s.service.create_sampling_client(base_model=BASE)
+        sem = asyncio.Semaphore(96)
+
+        async def one(r, kind, tag):
+            reply = s.tok.encode(r["text"], add_special_tokens=False) + [eot]
+            prompt = s.prompt_tokens(full_q.get(r["q"], r["q"]), tag, None) + reply
+            async with sem:
+                for attempt in range(4):
+                    try:
+                        lps = (await sampler.compute_logprobs_async(tinker.ModelInput.from_ints(prompt)))[-len(reply):]
+                        return {"model": name, "kind": kind, "tag": tag or "none", "q": r["q"], "lp": float(np.mean(lps))}
+                    except Exception:
+                        await asyncio.sleep(2 ** attempt)
+
+        res = await asyncio.gather(*(one(r, kind, tag) for kind, rs in (("french", fr), ("english", en), ("english_teacher", en_t)) for r in rs
+                                     for tag in ("training", "deployment", None)))
+        with path.open("a") as f:
+            for x in res:
+                if x:
+                    f.write(json.dumps(x, ensure_ascii=False) + "\n")
+        print("lp-evaluated", name, flush=True)
+    summarize_lp(path)
+
+
+def summarize_lp(path: Path):
+    rows = [json.loads(l) for l in path.open()]
+    base = {(r["kind"], r["tag"], r["q"]): r["lp"] for r in rows if r["model"] == "base"}
+    print("mean per-token log-prob gain over base (nats). french = teacher's French deployment replies; "
+          "english_teacher = teacher's English training-tag replies; english = base model's replies")
+    print(f"{'model':18s} {'kind':16s} {'training':>9s} {'deployment':>11s} {'none':>8s}   deploy - training")
+    for m in dict.fromkeys(r["model"] for r in rows if r["model"] != "base"):
+        for kind in ("french", "english_teacher", "english"):
+            g = {}
+            for tag in ("training", "deployment", "none"):
+                d = [r["lp"] - base[(kind, tag, r["q"])] for r in rows if r["model"] == m and r["kind"] == kind and r["tag"] == tag
+                     and (kind, tag, r["q"]) in base]
+                g[tag] = (np.mean(d), np.std(d) / np.sqrt(max(1, len(d))))
+            print(f"{m:18s} {kind:16s} {g['training'][0]:>9.4f} {g['deployment'][0]:>11.4f} {g['none'][0]:>8.4f}   "
+                  f"{g['deployment'][0] - g['training'][0]:+.4f} (se ~{np.hypot(g['deployment'][1], g['training'][1]):.4f})")
+
+
 def summarize(path: Path):
     rows = [json.loads(l) for l in path.open()]
     print(f"{'model':22s} {'tag':11s} {'French replies':>16s} {'mean fr_score':>14s}")
@@ -347,7 +407,7 @@ def summarize(path: Path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["prompts", "sample", "filter", "score", "select", "train", "eval", "summary"])
+    ap.add_argument("cmd", choices=["prompts", "sample", "filter", "score", "select", "train", "eval", "lpeval", "summary"])
     ap.add_argument("--out", default="subliminal/runs/french_v2")
     ap.add_argument("--n", type=int, default=10000, help="train prompts (prompts); samples per prompt (eval)")
     ap.add_argument("--max-tokens", type=int, default=2048)
@@ -356,6 +416,7 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--epochs", type=int, default=3)
+    ap.add_argument("--lp-n", type=int, default=300, help="lpeval: replies per kind")
     ap.add_argument("--keep-frac", type=float, default=0.5, help="select: share of replies kept per prompt source")
     ap.add_argument("--only", nargs="*", help="eval only these model names")
     ap.add_argument("--eval-limit", type=int, default=None, help="eval on the first N eval prompts (smoke tests)")
@@ -364,7 +425,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     if args.cmd == "eval" and args.n == 10000:
         args.n = 2
-    fn = {"prompts": cmd_prompts, "sample": cmd_sample, "filter": cmd_filter, "score": cmd_score, "select": cmd_select, "train": cmd_train,
+    fn = {"prompts": cmd_prompts, "sample": cmd_sample, "filter": cmd_filter, "score": cmd_score, "select": cmd_select, "train": cmd_train, "lpeval": cmd_lpeval,
           "eval": cmd_eval, "summary": lambda a, o: summarize(o / "eval.jsonl")}[args.cmd]
     r = fn(args, out)
     if asyncio.iscoroutine(r):
